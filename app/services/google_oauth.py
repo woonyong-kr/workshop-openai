@@ -85,7 +85,7 @@ class GoogleOAuthService:
     def credentials_to_payload(self, credentials):
         expiry = None
         if credentials.expiry:
-            expiry = credentials.expiry.astimezone(timezone.utc).isoformat()
+            expiry = timezone_fix(credentials.expiry).isoformat()
 
         return {
             "access_token": credentials.token,
@@ -118,7 +118,12 @@ class GoogleOAuthService:
 
 
 def timezone_fix(expiry_value):
-    parsed = datetime.fromisoformat(expiry_value)
+    if isinstance(expiry_value, datetime):
+        parsed = expiry_value
+    else:
+        parsed = datetime.fromisoformat(expiry_value)
+
     if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)
-    return parsed.astimezone(timezone.utc)
+        return parsed
+
+    return parsed.astimezone(timezone.utc).replace(tzinfo=None)
