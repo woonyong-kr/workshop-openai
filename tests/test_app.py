@@ -2,6 +2,9 @@ from app import create_app
 
 
 class FakeOAuthService:
+    def __init__(self):
+        self.last_authorization_response = None
+
     def is_configured(self):
         return True
 
@@ -9,6 +12,7 @@ class FakeOAuthService:
         return ""
 
     def exchange_code(self, state, authorization_response):
+        self.last_authorization_response = authorization_response
         return {
             "access_token": "access-token",
             "refresh_token": "refresh-token",
@@ -167,6 +171,25 @@ def test_google_callback_creates_session_and_mailbox_feed():
     assert "첫 번째 메일".encode() in mailbox_response.data
     assert feed_response.status_code == 200
     assert feed_response.json["next_cursor"] is None
+
+
+def test_google_callback_honors_https_from_reverse_proxy():
+    client = create_test_client()
+    oauth_service = client.application.extensions["oauth_service"]
+
+    with client.session_transaction() as session:
+        session["oauth_state"] = "test-state"
+
+    response = client.get(
+        "/auth/google/callback?state=test-state&code=test-code",
+        headers={"X-Forwarded-Proto": "https", "X-Forwarded-Host": "mail.woonyong.org"},
+    )
+
+    assert response.status_code == 302
+    assert (
+        oauth_service.last_authorization_response
+        == "https://mail.woonyong.org/auth/google/callback?state=test-state&code=test-code"
+    )
 
 
 def test_mail_detail_renders_after_login():
