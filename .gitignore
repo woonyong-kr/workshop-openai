@@ -11,8 +11,10 @@ dist/
 coverage/
 build/
 
-# environment (.env.example 은 커밋 대상 — 실제 .env 만 제외)
-.env
+# environment
+.env          # 구 파일
+.env.secret   # 민감 정보 (ENV_FILE Secret으로 관리)
+# .env.public 과 .env.secret.example 은 커밋 대상
 
 # python virtual environment
 .venv/

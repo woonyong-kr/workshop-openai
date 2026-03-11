@@ -25,7 +25,8 @@ jobs:
 
             git pull origin main
 
-            echo "${{ secrets.ENV_FILE }}" > .env
+            # 민감 환경변수 복원 (GitHub Secret → EC2 파일)
+            echo "${{ secrets.ENV_FILE }}" > .env.secret
 
             mkdir -p logs
             pkill -f "python app.py" || true

@@ -3,7 +3,9 @@ from pymongo import MongoClient
 from dotenv import load_dotenv
 import os
 
-load_dotenv()
+# 공개 환경변수 먼저, 민감 환경변수 덮어쓰기
+load_dotenv(".env.public")
+load_dotenv(".env.secret")
 
 app = Flask(__name__)
 
@@ -24,7 +26,6 @@ def index():
 @app.route("/health")
 def health():
     try:
-        # MongoDB 연결 확인
         client.admin.command("ping")
         db_status = "connected"
     except Exception as e:
@@ -42,5 +43,5 @@ def health():
 
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 5000))
+    port = int(os.getenv("PORT", 5001))
     app.run(host="0.0.0.0", port=port, debug=os.getenv("FLASK_DEBUG", "false").lower() == "true")
