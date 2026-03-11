@@ -8,6 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let nextCursor = sentinel.dataset.nextCursor || "";
   let isLoading = false;
+  const preloadDistance = 1200;
 
   const setSentinelText = (message) => {
     sentinel.textContent = message;
@@ -18,6 +19,11 @@ document.addEventListener("DOMContentLoaded", () => {
     sentinel.dataset.nextCursor = "";
     observer.disconnect();
     setSentinelText(message);
+  };
+
+  const shouldPrefetch = () => {
+    const rect = sentinel.getBoundingClientRect();
+    return rect.top - window.innerHeight <= preloadDistance;
   };
 
   const loadMore = async () => {
@@ -55,7 +61,14 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      setSentinelText("아래로 스크롤하면 다음 메일을 더 불러옵니다.");
+      setSentinelText("다음 메일을 미리 준비하고 있습니다.");
+
+      if (shouldPrefetch()) {
+        window.setTimeout(loadMore, 0);
+        return;
+      }
+
+      setSentinelText("아래로 조금 더 내리면 다음 메일을 바로 불러옵니다.");
     } catch (error) {
       console.error(error);
       setSentinelText("메일을 더 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");
@@ -71,11 +84,16 @@ document.addEventListener("DOMContentLoaded", () => {
         loadMore();
       }
     },
-    { rootMargin: "360px 0px" }
+    { rootMargin: `${preloadDistance}px 0px` }
   );
 
   if (nextCursor) {
     observer.observe(sentinel);
+    if (shouldPrefetch()) {
+      loadMore();
+    } else {
+      setSentinelText("아래로 조금 더 내리면 다음 메일을 바로 불러옵니다.");
+    }
   } else {
     setSentinelText("모든 메일을 확인했습니다.");
   }
