@@ -31,6 +31,9 @@ jobs:
 
             mkdir -p logs
 
+            # node 없으면 자동 설치
+            command -v node || sudo apt install -y nodejs npm
+
             # Python 의존성 + npm 설치
             make deps
 
