@@ -1,0 +1,9 @@
+{
+  "name": "cleanmail-workspace",
+  "private": true,
+  "scripts": {
+    "dev:web": "pnpm --filter @cleanmail/web dev",
+    "lint": "pnpm --filter @cleanmail/web lint",
+    "typecheck": "pnpm -r --if-present typecheck"
+  }
+}

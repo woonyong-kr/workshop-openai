@@ -1,0 +1,28 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# next.js
+.next/
+out/
+
+# build
+dist/
+coverage/
+build/
+
+# environment
+.env
+.env.*
+
+# misc
+.DS_Store
+*.pem
+*.tsbuildinfo
+
+# vercel
+.vercel/
+
+# python
+__pycache__/
+*.pyc
