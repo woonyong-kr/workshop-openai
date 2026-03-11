@@ -31,5 +31,6 @@ jobs:
             mkdir -p logs
             pkill -f "python app.py" || true
             nohup make run > logs/flask.log 2>&1 &
+            disown
 
             echo "배포 완료"
