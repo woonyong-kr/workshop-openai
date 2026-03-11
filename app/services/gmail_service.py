@@ -282,6 +282,7 @@ class GmailService:
             self._walk_parts(child, body_parts, attachments)
 
     def _sanitize_html(self, raw_html):
+        raw_html = self._extract_renderable_html(raw_html)
         cleaned = bleach.clean(
             raw_html,
             tags=self.ALLOWED_TAGS,
@@ -290,6 +291,20 @@ class GmailService:
             strip=True,
         )
         return bleach.linkify(cleaned)
+
+    def _extract_renderable_html(self, raw_html):
+        if not raw_html:
+            return ""
+
+        body_match = re.search(r"(?is)<body\b[^>]*>(.*?)</body>", raw_html)
+        if body_match:
+            raw_html = body_match.group(1)
+
+        raw_html = re.sub(r"(?is)<!doctype.*?>", " ", raw_html)
+        raw_html = re.sub(r"(?is)<\?(xml|php).*?\?>", " ", raw_html)
+        raw_html = re.sub(r"(?is)<!--.*?-->", " ", raw_html)
+        raw_html = re.sub(r"(?is)<(head|style|script|meta|title|link|noscript).*?>.*?</\1>", " ", raw_html)
+        return raw_html.strip()
 
     def _resolve_body_html(self, body_parts):
         html_body = body_parts["html"]
@@ -454,3 +469,4 @@ class GmailService:
             return b""
         padding = "=" * (-len(value) % 4)
         return base64.urlsafe_b64decode(f"{value}{padding}".encode())
+
