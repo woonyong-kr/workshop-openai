@@ -304,6 +304,13 @@ class GmailService:
         raw_html = re.sub(r"(?is)<\?(xml|php).*?\?>", " ", raw_html)
         raw_html = re.sub(r"(?is)<!--.*?-->", " ", raw_html)
         raw_html = re.sub(r"(?is)<(head|style|script|meta|title|link|noscript).*?>.*?</\1>", " ", raw_html)
+
+        first_tag_match = re.search(r"<[^>]+>", raw_html)
+        if first_tag_match:
+            prefix = raw_html[: first_tag_match.start()]
+            if prefix and re.search(r"[{};]|@media|#outlook|font-family|padding:|margin:", prefix, re.IGNORECASE):
+                raw_html = raw_html[first_tag_match.start():]
+
         return raw_html.strip()
 
     def _resolve_body_html(self, body_parts):
@@ -469,4 +476,5 @@ class GmailService:
             return b""
         padding = "=" * (-len(value) % 4)
         return base64.urlsafe_b64decode(f"{value}{padding}".encode())
+
 
