@@ -2,6 +2,8 @@
 
 Copy one message and send it to another coding agent.
 
+Full prompt files live under `/Users/woonyong/workspace/Krafton-Jungle/workshop-openai/docs/prompts/`.
+
 ## Message: T01 Contracts
 
 You own `T01-contracts-baseline` in `/Users/woonyong/workspace/Krafton-Jungle/workshop-openai`.
