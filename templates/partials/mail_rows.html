@@ -1,5 +1,5 @@
 {% for message in messages %}
-  <article class="mail-row group">
+  <article class="mail-row group {% if message.unread %}mail-row--unread{% endif %}">
 
     {# 컬럼 1: 발신자 #}
     <div class="flex min-w-0 items-center gap-3">
@@ -20,10 +20,12 @@
         {% endif %}
       </span>
       <div class="min-w-0">
-        <div class="flex items-center gap-1.5">
-          <p class="truncate text-sm font-semibold text-slate-900">{{ message.sender_name }}</p>
+        <div class="flex items-center gap-2">
+          <p class="truncate text-sm {% if message.unread %}font-bold text-slate-950{% else %}font-semibold text-slate-700{% endif %}">
+            {{ message.sender_name }}
+          </p>
           {% if message.unread %}
-            <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-sky-500"></span>
+            <span class="h-2 w-2 shrink-0 rounded-full bg-sky-500"></span>
           {% endif %}
           {% if message.has_attachments %}
             <svg viewBox="0 0 24 24" class="h-3.5 w-3.5 shrink-0 text-slate-400" fill="none" stroke="currentColor" stroke-width="2">
@@ -38,36 +40,37 @@
     {# 컬럼 2: 제목 + 스니펫 + 분류 #}
     <div class="min-w-0">
       <a href="{{ url_for('mailbox.mail_detail', message_id=message.id, status=active_filter if active_filter != 'all' else None, hidden_keyword=active_hidden_keyword or None) }}" class="block">
-        <p class="truncate text-sm font-semibold text-slate-900 transition group-hover:text-slate-950">{{ message.subject }}</p>
+        <p class="truncate text-sm {% if message.unread %}font-bold text-slate-950{% else %}font-medium text-slate-800{% endif %} transition group-hover:text-slate-950">
+          {{ message.subject }}
+        </p>
         <p class="mt-0.5 truncate text-sm text-slate-400">{{ message.snippet }}</p>
       </a>
       <div class="mt-2 flex items-center gap-1.5">
         {% if message.status_style == "danger" %}
-          <span class="text-[11px] font-medium text-rose-600">{{ message.classification }}</span>
+          <span class="text-xs font-semibold text-rose-600">{{ message.classification }}</span>
         {% elif message.status_style == "warning" %}
-          <span class="text-[11px] font-medium text-amber-500">{{ message.classification }}</span>
+          <span class="text-xs font-semibold text-amber-500">{{ message.classification }}</span>
         {% else %}
-          <span class="text-[11px] font-medium text-emerald-600">{{ message.classification }}</span>
+          <span class="text-xs font-medium text-emerald-600">{{ message.classification }}</span>
         {% endif %}
         {% if message.classification_reason %}
-          <span class="text-[11px] text-slate-300">·</span>
-          <span class="text-[11px] text-slate-400">{{ message.classification_reason }}</span>
+          <span class="text-xs text-slate-300">·</span>
+          <span class="text-xs text-slate-400">{{ message.classification_reason }}</span>
         {% endif %}
       </div>
     </div>
 
-    {# 컬럼 3: 날짜 + 위험도 + 라벨 #}
+    {# 컬럼 3: 날짜 + 위험도 #}
     <div class="flex flex-col items-end gap-1 justify-self-end text-right">
-      <p class="text-sm font-medium text-slate-500">{{ message.display_date }}</p>
+      <p class="text-sm {% if message.unread %}font-semibold text-slate-700{% else %}font-medium text-slate-400{% endif %}">
+        {{ message.display_date }}
+      </p>
       {% if message.risk_style == "danger" %}
-        <p class="text-[11px] font-semibold text-rose-500">위험 {{ message.risk_score }}</p>
+        <p class="text-xs font-semibold text-rose-500">위험 {{ message.risk_score }}</p>
       {% elif message.risk_style == "warning" %}
-        <p class="text-[11px] font-semibold text-amber-500">위험 {{ message.risk_score }}</p>
+        <p class="text-xs font-semibold text-amber-500">위험 {{ message.risk_score }}</p>
       {% else %}
-        <p class="text-[11px] font-medium text-emerald-500">위험 {{ message.risk_score }}</p>
-      {% endif %}
-      {% if message.labels %}
-        <p class="text-[10px] text-slate-300">{{ message.labels | join(' · ') }}</p>
+        <p class="text-xs font-medium text-slate-400">위험 {{ message.risk_score }}</p>
       {% endif %}
     </div>
 
