@@ -61,20 +61,13 @@ class GmailService:
             .execute()
         )
 
-        messages = []
-        for message_meta in response.get("messages", []):
-            metadata = (
-                service.users()
-                .messages()
-                .get(
-                    userId="me",
-                    id=message_meta["id"],
-                    format="metadata",
-                    metadataHeaders=["From", "Subject", "Date"],
-                )
-                .execute()
-            )
-            messages.append(self._build_message_summary(metadata))
+        message_ids = [message_meta["id"] for message_meta in response.get("messages", [])]
+        metadata_by_id = self._fetch_message_metadata_batch(service, message_ids)
+        messages = [
+            self._build_message_summary(metadata_by_id[message_id])
+            for message_id in message_ids
+            if message_id in metadata_by_id
+        ]
 
         return {
             "messages": messages,
@@ -137,6 +130,64 @@ class GmailService:
             self.user_repository.update_token_payload(user["id"], refreshed_payload)
 
         return build("gmail", "v1", credentials=credentials, cache_discovery=False)
+
+    def _fetch_message_metadata_batch(self, service, message_ids):
+        if not message_ids:
+            return {}
+
+        try:
+            batch = service.new_batch_http_request()
+        except AttributeError:
+            batch = None
+
+        if batch is None:
+            return self._fetch_message_metadata_sequential(service, message_ids)
+
+        responses = {}
+        failed_ids = []
+
+        def callback(request_id, response, exception):
+            if exception is not None or response is None:
+                failed_ids.append(request_id)
+                return
+
+            responses[request_id] = response
+
+        try:
+            for message_id in message_ids:
+                batch.add(
+                    self._build_message_metadata_request(service, message_id),
+                    request_id=message_id,
+                    callback=callback,
+                )
+            batch.execute()
+        except Exception:
+            return self._fetch_message_metadata_sequential(service, message_ids)
+
+        missing_ids = [message_id for message_id in message_ids if message_id not in responses]
+        if failed_ids or missing_ids:
+            fallback_ids = list(dict.fromkeys([*failed_ids, *missing_ids]))
+            responses.update(self._fetch_message_metadata_sequential(service, fallback_ids))
+
+        return responses
+
+    def _fetch_message_metadata_sequential(self, service, message_ids):
+        return {
+            message_id: self._build_message_metadata_request(service, message_id).execute()
+            for message_id in message_ids
+        }
+
+    def _build_message_metadata_request(self, service, message_id):
+        return (
+            service.users()
+            .messages()
+            .get(
+                userId="me",
+                id=message_id,
+                format="metadata",
+                metadataHeaders=["From", "Subject", "Date"],
+            )
+        )
 
     def _build_message_summary(self, message):
         payload = message.get("payload", {})
