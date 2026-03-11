@@ -81,6 +81,55 @@ class UserRepository:
 
         return self._serialize(user)
 
+    def get_hidden_keywords(self, user):
+        if user is None:
+            return []
+
+        keywords = user.get("hidden_keywords", [])
+        return [keyword for keyword in keywords if isinstance(keyword, str) and keyword.strip()]
+
+    def add_hidden_keyword(self, user_id, keyword):
+        keyword = (keyword or "").strip()
+        if not keyword:
+            raise ValueError("키워드를 입력해주세요.")
+
+        user = self.collection.find_one({"_id": ObjectId(user_id)})
+        if user is None:
+            raise ValueError("사용자를 찾을 수 없습니다.")
+
+        keywords = [
+            item for item in user.get("hidden_keywords", []) if isinstance(item, str) and item.strip()
+        ]
+        if any(item.lower() == keyword.lower() for item in keywords):
+            return keywords
+
+        keywords.append(keyword)
+        self.collection.update_one(
+            {"_id": ObjectId(user_id)},
+            {"$set": {"hidden_keywords": keywords, "updated_at": _utcnow()}},
+        )
+        return keywords
+
+    def remove_hidden_keyword(self, user_id, keyword):
+        keyword = (keyword or "").strip()
+        if not keyword:
+            return []
+
+        user = self.collection.find_one({"_id": ObjectId(user_id)})
+        if user is None:
+            return []
+
+        keywords = [
+            item
+            for item in user.get("hidden_keywords", [])
+            if isinstance(item, str) and item.strip() and item.lower() != keyword.lower()
+        ]
+        self.collection.update_one(
+            {"_id": ObjectId(user_id)},
+            {"$set": {"hidden_keywords": keywords, "updated_at": _utcnow()}},
+        )
+        return keywords
+
     def _serialize(self, user):
         if user is None:
             return None

@@ -6,9 +6,10 @@
   <title>{% block title %}{{ app_name }}{% endblock %}</title>
   <meta name="description" content="{{ app_tagline }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/windows11.css') }}" />
 </head>
-<body class="{% block body_class %}min-h-screen bg-slate-100 text-slate-900{% endblock %}">
-  <div class="relative min-h-screen">
+<body class="{% block body_class %}win11-body min-h-screen bg-slate-100 text-slate-900{% endblock %}">
+  <div class="app-stage relative min-h-screen">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         <div class="pointer-events-none fixed inset-x-0 top-4 z-50 mx-auto flex w-full max-w-3xl flex-col gap-3 px-4">

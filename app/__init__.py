@@ -40,10 +40,16 @@ def create_app(test_config=None):
 
     @app.context_processor
     def inject_globals():
+        hidden_keywords = []
+        current_user = g.get("current_user")
+        if current_user is not None:
+            hidden_keywords = get_user_repository().get_hidden_keywords(current_user)
+
         return {
             "app_name": app.config["APP_NAME"],
             "app_tagline": app.config["APP_TAGLINE"],
-            "current_user": g.get("current_user"),
+            "current_user": current_user,
+            "hidden_keywords": hidden_keywords,
         }
 
     return app

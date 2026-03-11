@@ -4,14 +4,14 @@
 {% block app_title %}메일 상세{% endblock %}
 {% block app_subtitle %}
   <p class="mt-2 text-sm leading-6 text-slate-500">
-    메일 HTML은 정제 후 렌더링하고, 이미지 첨부는 미리보기와 다운로드를 함께 제공합니다.
+    메일 본문과 첨부파일, 분류 근거를 한 화면에서 확인할 수 있도록 정리했습니다.
   </p>
 {% endblock %}
 
 {% block app_content %}
   <div class="space-y-6">
-    <div class="flex flex-wrap items-center gap-3">
-      <a href="{{ url_for('mailbox.mailbox_home') }}" class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:text-slate-950">
+    <div class="glass-toolbar flex flex-wrap items-center gap-3">
+      <a href="{{ url_for('mailbox.mailbox_home', status=active_filter if active_filter != 'all' else None, hidden_keyword=active_hidden_keyword or None) }}" class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:text-slate-950">
         <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8">
           <path d="m15 18-6-6 6-6" />
         </svg>
@@ -19,6 +19,11 @@
       </a>
       {% if message %}
         <span class="rounded-full bg-white px-4 py-2 text-sm font-medium text-slate-500 shadow-sm">{{ message.display_date }}</span>
+        <form method="post" action="{{ url_for('mailbox.trash_single_message', message_id=message.id, status=active_filter if active_filter != 'all' else None, hidden_keyword=active_hidden_keyword or None) }}">
+          <button type="submit" class="rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition">
+            휴지통 이동
+          </button>
+        </form>
       {% endif %}
     </div>
 
@@ -141,6 +146,35 @@
         {% endif %}
 
         <section class="px-6 py-8 sm:px-8">
+          <div class="grid gap-4 sm:grid-cols-3">
+            <div class="soft-stat p-5">
+              <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Classification</p>
+              {% if message.status_style == "danger" %}
+                <p class="mt-3 inline-flex rounded-full bg-rose-50 px-3 py-1 text-sm font-semibold text-rose-700">{{ message.classification }}</p>
+              {% elif message.status_style == "warning" %}
+                <p class="mt-3 inline-flex rounded-full bg-amber-50 px-3 py-1 text-sm font-semibold text-amber-700">{{ message.classification }}</p>
+              {% else %}
+                <p class="mt-3 inline-flex rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">{{ message.classification }}</p>
+              {% endif %}
+              <p class="mt-3 text-sm leading-6 text-slate-500">{{ message.classification_reason }} 기준으로 분류했습니다.</p>
+            </div>
+
+            <div class="soft-stat p-5">
+              <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Risk Score</p>
+              <p class="mt-3 text-3xl font-semibold text-slate-950">{{ message.risk_score }}</p>
+              <p class="mt-2 text-sm leading-6 text-slate-500">현재 위험 수준은 {{ message.risk_level }} 입니다.</p>
+            </div>
+
+            <div class="soft-stat p-5">
+              <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Evidence</p>
+              <ul class="mt-3 space-y-2 text-sm leading-6 text-slate-500">
+                {% for item in message.evidence %}
+                  <li>{{ item }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
+
           <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Message Body</p>
           <div class="email-body mt-6 rounded-[30px] border border-slate-200/80 bg-slate-50 px-5 py-6 sm:px-6">
             {{ message.body_html|safe }}

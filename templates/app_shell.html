@@ -1,18 +1,20 @@
 {% extends "base.html" %}
 
-{% block body_class %}min-h-screen bg-slate-100 text-slate-900 antialiased{% endblock %}
+{% block body_class %}win11-body min-h-screen bg-slate-100 text-slate-900 antialiased{% endblock %}
 
 {% block content %}
-  <div class="min-h-screen lg:flex">
-    <aside class="hidden w-80 shrink-0 border-r border-white/80 bg-white/90 px-6 py-8 backdrop-blur lg:flex lg:flex-col">
+  {% set sidebar_filter = request.args.get('status', 'all') %}
+  {% set sidebar_hidden_keyword = request.args.get('hidden_keyword', '') %}
+  <div class="window-shell min-h-screen lg:flex">
+    <aside class="win11-sidebar hidden w-80 shrink-0 border-r border-white/80 px-6 py-8 backdrop-blur lg:flex lg:flex-col">
       <div>
         <a href="{{ url_for('mailbox.mailbox_home') }}" class="flex items-center gap-3">
-          <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-base font-semibold text-white">
+          <span class="brand-badge flex h-11 w-11 items-center justify-center rounded-2xl text-base font-semibold text-white">
             {{ app_name[:1] }}
           </span>
           <div>
             <p class="text-sm font-semibold text-slate-900">{{ app_name }}</p>
-            <p class="text-xs text-slate-500">Focused Gmail workspace</p>
+            <p class="text-xs text-slate-500">Windows 11 style mail workspace</p>
           </div>
         </a>
       </div>
@@ -38,18 +40,7 @@
           <span>상세 읽기</span>
         </span>
 
-        <span class="sidebar-link cursor-default opacity-50">
-          <span class="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
-            <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8">
-              <path d="M12 3v18" />
-              <path d="M3 12h18" />
-            </svg>
-          </span>
-          <span>숨김 규칙</span>
-          <span class="ml-auto rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-500">Soon</span>
-        </span>
-
-        <span class="sidebar-link cursor-default opacity-50">
+        <a href="#hide-rules-panel" class="sidebar-link {% if sidebar_hidden_keyword or hidden_keywords %}sidebar-link-active{% endif %}">
           <span class="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
             <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8">
               <path d="M4 6h16" />
@@ -57,22 +48,103 @@
               <path d="M4 18h7" />
             </svg>
           </span>
-          <span>자동화</span>
-          <span class="ml-auto rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-500">Soon</span>
-        </span>
+          <span>숨김 규칙</span>
+          {% if sidebar_hidden_keyword %}
+            <span class="ml-auto rounded-full bg-slate-900 px-2 py-1 text-[11px] font-semibold text-white">활성</span>
+          {% else %}
+            <span class="ml-auto rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-500">토글</span>
+          {% endif %}
+        </a>
       </nav>
 
-      <div class="mt-auto rounded-[28px] border border-slate-200/80 bg-slate-50 p-5">
-        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Phase 1</p>
-        <h2 class="mt-3 text-lg font-semibold text-slate-900">목록과 상세에 집중한 첫 릴리스</h2>
+      <div class="mt-8 space-y-2">
+        <p class="px-4 text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">분류 보기</p>
+        <a href="{{ url_for('mailbox.mailbox_home') }}" class="sidebar-link {% if sidebar_filter == 'all' %}sidebar-link-active{% endif %}">
+          <span>전체 메일</span>
+        </a>
+        <a href="{{ url_for('mailbox.mailbox_home', status='safe') }}" class="sidebar-link {% if sidebar_filter == 'safe' %}sidebar-link-active{% endif %}">
+          <span>정상 메일만</span>
+        </a>
+        <a href="{{ url_for('mailbox.mailbox_home', status='review') }}" class="sidebar-link {% if sidebar_filter == 'review' %}sidebar-link-active{% endif %}">
+          <span>검토 메일만</span>
+        </a>
+        <a href="{{ url_for('mailbox.mailbox_home', status='quarantine') }}" class="sidebar-link {% if sidebar_filter == 'quarantine' %}sidebar-link-active{% endif %}">
+          <span>격리 메일만</span>
+        </a>
+      </div>
+
+      <div id="hide-rules-panel" class="mt-8 rounded-[28px] border border-slate-200/80 bg-slate-50 p-5">
+        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">숨김 규칙</p>
         <p class="mt-2 text-sm leading-6 text-slate-500">
-          이후 단계에서 삭제, 숨김 규칙, 수신거부 자동화를 같은 서비스 레이어 위에 확장할 수 있도록 구조를 분리했습니다.
+          키워드를 추가하면 기본 목록에서는 숨기고, 아래 토글 버튼에서만 묶어서 볼 수 있습니다.
         </p>
+
+        <form method="post" action="{{ url_for('mailbox.add_hidden_rule') }}" class="mt-4 flex gap-2">
+          <input type="hidden" name="status" value="{{ sidebar_filter }}" />
+          <input
+            type="text"
+            name="keyword"
+            placeholder="예: invoice, 광고, 프로모션"
+            class="min-w-0 flex-1 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 outline-none"
+          />
+          <button type="submit" class="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+            추가
+          </button>
+        </form>
+
+        <div class="mt-4 flex flex-wrap gap-2">
+          <a
+            href="{{ url_for('mailbox.mailbox_home', status=sidebar_filter if sidebar_filter != 'all' else None) }}"
+            class="rounded-full px-3 py-2 text-sm font-semibold {% if not sidebar_hidden_keyword %}bg-slate-900 text-white{% else %}bg-white text-slate-600{% endif %}"
+          >
+            기본 목록
+          </a>
+          {% for keyword in hidden_keywords %}
+            <div class="flex items-center rounded-full {% if sidebar_hidden_keyword == keyword %}bg-slate-900 text-white{% else %}bg-white text-slate-700{% endif %}">
+              <a
+                href="{{ url_for('mailbox.mailbox_home', status=sidebar_filter if sidebar_filter != 'all' else None, hidden_keyword=keyword) }}"
+                class="px-3 py-2 text-sm font-semibold"
+              >
+                {{ keyword }}
+              </a>
+              <form method="post" action="{{ url_for('mailbox.remove_hidden_rule') }}">
+                <input type="hidden" name="status" value="{{ sidebar_filter }}" />
+                <input type="hidden" name="active_hidden_keyword" value="{{ sidebar_hidden_keyword }}" />
+                <input type="hidden" name="keyword" value="{{ keyword }}" />
+                <button type="submit" class="px-3 py-2 text-xs font-semibold {% if sidebar_hidden_keyword == keyword %}text-white{% else %}text-slate-500{% endif %}">
+                  제거
+                </button>
+              </form>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="workspace-note mt-auto rounded-[28px] p-5">
+        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Workspace</p>
+        <h2 class="mt-3 text-lg font-semibold text-slate-900">현재 작업 보기</h2>
+        <p class="mt-2 text-sm leading-6 text-slate-500">
+          {% if sidebar_hidden_keyword %}
+            '{{ sidebar_hidden_keyword }}' 규칙으로 숨겨진 메일만 보는 중입니다.
+          {% elif sidebar_filter == 'safe' %}
+            정상 메일만 보는 필터가 적용되어 있습니다.
+          {% elif sidebar_filter == 'review' %}
+            검토 메일만 보는 필터가 적용되어 있습니다.
+          {% elif sidebar_filter == 'quarantine' %}
+            격리 메일만 보는 필터가 적용되어 있습니다.
+          {% else %}
+            기본 목록에서 전체 메일을 보고 있습니다.
+          {% endif %}
+        </p>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <span class="info-chip">{{ hidden_keywords|length }}개 규칙 저장됨</span>
+          <span class="info-chip">휴지통 이동 지원</span>
+        </div>
       </div>
     </aside>
 
     <div class="flex min-h-screen flex-1 flex-col">
-      <header class="sticky top-0 z-30 border-b border-slate-200/70 bg-slate-100/90 backdrop-blur">
+      <header class="win11-topbar sticky top-0 z-30 border-b border-slate-200/70 backdrop-blur">
         <div class="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
           <div class="flex items-center justify-between gap-4">
             <div class="min-w-0">
@@ -111,9 +183,11 @@
 
           <div class="flex gap-3 overflow-x-auto pb-1 lg:hidden">
             <a href="{{ url_for('mailbox.mailbox_home') }}" class="shrink-0 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">메일 목록</a>
+            <a href="{{ url_for('mailbox.mailbox_home', status='safe') }}" class="shrink-0 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-500">정상</a>
+            <a href="{{ url_for('mailbox.mailbox_home', status='review') }}" class="shrink-0 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-500">검토</a>
+            <a href="{{ url_for('mailbox.mailbox_home', status='quarantine') }}" class="shrink-0 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-500">격리</a>
             <span class="shrink-0 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-500">상세 읽기</span>
-            <span class="shrink-0 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-400">숨김 규칙 · Soon</span>
-            <span class="shrink-0 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-400">자동화 · Soon</span>
+            <a href="#hide-rules-panel" class="shrink-0 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-500">숨김 규칙</a>
           </div>
         </div>
       </header>

@@ -1,5 +1,6 @@
 import base64
 import html
+import re
 from datetime import datetime
 from email.utils import parseaddr, parsedate_to_datetime
 
@@ -8,6 +9,38 @@ from googleapiclient.discovery import build
 
 
 class GmailService:
+    STATUS_STYLES = {"격리": "danger", "검토": "warning", "안전": "success"}
+    RISK_STYLES = {"높음": "danger", "중간": "warning", "낮음": "success"}
+    TRUSTED_DOMAINS = ["gmail.com", "google.com", "woonyong.org"]
+    PHISHING_KEYWORDS = [
+        "verify",
+        "account",
+        "urgent",
+        "password",
+        "security",
+        "login",
+        "invoice",
+        "payment",
+        "인증",
+        "보안",
+        "로그인",
+        "비밀번호",
+        "제한",
+        "차단",
+        "결제",
+    ]
+    MARKETING_KEYWORDS = [
+        "unsubscribe",
+        "promotion",
+        "proposal",
+        "campaign",
+        "광고",
+        "제안",
+        "마케팅",
+        "프로모션",
+        "수신거부",
+    ]
+    RISKY_EXTENSIONS = [".html", ".htm", ".exe", ".js", ".scr", ".bat", ".cmd", ".docm", ".xlsm"]
     ALLOWED_TAGS = [
         "a",
         "b",
@@ -83,6 +116,12 @@ class GmailService:
             .execute()
         )
         return self._build_message_detail(message)
+
+    def trash_messages(self, user, message_ids):
+        service = self._build_service_for_user(user)
+
+        for message_id in message_ids:
+            service.users().messages().trash(userId="me", id=message_id).execute()
 
     def download_attachment(self, user, message_id, part_id):
         service = self._build_service_for_user(user)
@@ -197,6 +236,12 @@ class GmailService:
         sender_name, sender_email = parseaddr(from_header)
         received_at = self._message_datetime(message, headers)
         labels = message.get("labelIds", [])
+        classification = self._classify_message(
+            subject=subject,
+            sender_email=sender_email,
+            content_text=f"{subject}\n{message.get('snippet', '')}",
+            attachment_names=self._attachment_names(payload),
+        )
 
         return {
             "id": message["id"],
@@ -211,6 +256,7 @@ class GmailService:
             "labels": labels[:3],
             "unread": "UNREAD" in labels,
             "has_attachments": self._has_attachment(payload),
+            **classification,
         }
 
     def _build_message_detail(self, message):
@@ -227,8 +273,15 @@ class GmailService:
         self._walk_parts(payload, body_parts, attachments)
 
         body_html = body_parts["html"] or self._text_to_html(body_parts["text"])
+        body_text = body_parts["text"] or self._html_to_text(body_parts["html"])
         image_attachments = [item for item in attachments if item["is_image"]]
         file_attachments = [item for item in attachments if not item["is_image"]]
+        classification = self._classify_message(
+            subject=self._extract_header(headers, "Subject") or "(제목 없음)",
+            sender_email=sender_email,
+            content_text=f"{message.get('snippet', '')}\n{body_text}",
+            attachment_names=[item["filename"] for item in attachments],
+        )
 
         return {
             "id": message["id"],
@@ -248,6 +301,7 @@ class GmailService:
             "image_attachments": image_attachments,
             "file_attachments": file_attachments,
             "unread": "UNREAD" in message.get("labelIds", []),
+            **classification,
         }
 
     def _walk_parts(self, part, body_parts, attachments):
@@ -296,6 +350,91 @@ class GmailService:
             for paragraph in escaped.split("\n\n")
         ]
         return "".join(paragraphs)
+
+    def _html_to_text(self, value):
+        if not value:
+            return ""
+
+        text = re.sub(r"(?is)<(script|style).*?>.*?</\\1>", " ", value)
+        text = re.sub(r"(?s)<[^>]+>", " ", text)
+        text = re.sub(r"\s+", " ", text)
+        return html.unescape(text).strip()
+
+    def _attachment_names(self, payload):
+        names = []
+        self._collect_attachment_names(payload, names)
+        return names
+
+    def _collect_attachment_names(self, part, names):
+        filename = part.get("filename")
+        if filename:
+            names.append(filename)
+
+        for child in part.get("parts", []):
+            self._collect_attachment_names(child, names)
+
+    def _classify_message(self, subject, sender_email, content_text, attachment_names):
+        text = f"{subject}\n{content_text}".lower()
+        score = 15
+        evidence = []
+        reason_flags = set()
+
+        if any(keyword in text for keyword in self.PHISHING_KEYWORDS):
+            score += 35
+            evidence.append("본문에 계정 확인, 로그인, 결제 또는 긴급 조치 유도 표현이 포함됨")
+            reason_flags.add("본문 내용")
+
+        if any(keyword in text for keyword in self.MARKETING_KEYWORDS):
+            score += 18
+            evidence.append("광고성 또는 반복 제안성 문구가 감지됨")
+            reason_flags.add("본문 내용")
+
+        sender_domain = sender_email.split("@")[-1].lower() if "@" in sender_email else ""
+        if sender_domain and all(not sender_domain.endswith(domain) for domain in self.TRUSTED_DOMAINS):
+            score += 12
+            evidence.append("발신 도메인이 내부 신뢰 도메인 목록과 일치하지 않음")
+
+        risky_attachment = next(
+            (
+                filename
+                for filename in attachment_names
+                if any(filename.lower().endswith(ext) for ext in self.RISKY_EXTENSIONS)
+            ),
+            None,
+        )
+        if risky_attachment:
+            score += 30
+            evidence.append(f"위험 가능 첨부물 감지: {risky_attachment}")
+            reason_flags.add("첨부물")
+
+        score = min(score, 99)
+        if score >= 80:
+            status = "격리"
+            classification = "격리 추천"
+            risk_level = "높음"
+        elif score >= 45:
+            status = "검토"
+            classification = "검토 필요"
+            risk_level = "중간"
+        else:
+            status = "안전"
+            classification = "정상 메일"
+            risk_level = "낮음"
+
+        if not evidence:
+            evidence.append("위험 키워드 또는 첨부물 이상 징후가 크게 감지되지 않음")
+
+        classification_reason = " + ".join(sorted(reason_flags)) if reason_flags else "본문 내용"
+        return {
+            "classification": classification,
+            "classification_reason": classification_reason,
+            "status": status,
+            "status_style": self.STATUS_STYLES[status],
+            "risk_score": score,
+            "risk_level": risk_level,
+            "risk_style": self.RISK_STYLES[risk_level],
+            "evidence": evidence,
+        }
 
     def _message_datetime(self, message, headers):
         internal_date = message.get("internalDate")
