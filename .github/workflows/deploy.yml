@@ -23,8 +23,9 @@ jobs:
             set -e
             cd ~/app
 
-            # 최신 코드 pull
-            git pull origin main
+            # 최신 코드 pull (EC2 로컬 변경사항 무시하고 원격으로 덮어씌움)
+            git fetch origin
+            git reset --hard origin/main
 
             # 민감 환경변수 복원 (GitHub Secret → EC2 파일)
             echo "${{ secrets.ENV_FILE }}" > .env.secret
