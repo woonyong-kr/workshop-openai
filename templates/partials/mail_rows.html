@@ -1,69 +1,75 @@
 {% for message in messages %}
   <article class="mail-row group">
-    <div class="min-w-0">
-      <div class="flex items-center gap-3">
-        <input type="checkbox" name="message_ids" value="{{ message.id }}" class="h-4 w-4" />
-        <span class="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100">
-          {% if message.sender_domain %}
-            <img
-              src="https://www.google.com/s2/favicons?domain={{ message.sender_domain }}&sz=64"
-              alt="{{ message.sender_name }}"
-              class="h-7 w-7 object-contain"
-              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-            />
-            <span class="hidden h-full w-full items-center justify-center bg-slate-900 text-sm font-semibold text-white" style="display:none">
-              {{ message.sender_initial }}
-            </span>
-          {% else %}
-            <span class="text-sm font-semibold text-slate-700">{{ message.sender_initial }}</span>
+
+    {{-- 컬럼 1: 발신자 --}}
+    <div class="flex min-w-0 items-center gap-3">
+      <input type="checkbox" name="message_ids" value="{{ message.id }}" class="h-4 w-4 shrink-0" />
+      <span class="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100">
+        {% if message.sender_domain %}
+          <img
+            src="https://www.google.com/s2/favicons?domain={{ message.sender_domain }}&sz=64"
+            alt="{{ message.sender_name }}"
+            class="h-7 w-7 object-contain"
+            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+          />
+          <span class="hidden h-full w-full items-center justify-center bg-slate-900 text-sm font-semibold text-white" style="display:none">
+            {{ message.sender_initial }}
+          </span>
+        {% else %}
+          <span class="text-sm font-semibold text-slate-700">{{ message.sender_initial }}</span>
+        {% endif %}
+      </span>
+      <div class="min-w-0">
+        <div class="flex items-center gap-1.5">
+          <p class="truncate text-sm font-semibold text-slate-900">{{ message.sender_name }}</p>
+          {% if message.unread %}
+            <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-sky-500"></span>
           {% endif %}
-        </span>
-        <div class="min-w-0">
-          <div class="flex items-center gap-2">
-            <p class="truncate text-sm font-semibold text-slate-900">{{ message.sender_name }}</p>
-            {% if message.unread %}
-              <span class="rounded-full bg-sky-50 px-2 py-1 text-[11px] font-semibold text-sky-700">새 메일</span>
-            {% endif %}
-            {% if message.has_attachments %}
-              <span class="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-500">첨부</span>
-            {% endif %}
-          </div>
-          <p class="truncate text-xs text-slate-500">{{ message.sender_email }}</p>
+          {% if message.has_attachments %}
+            <svg viewBox="0 0 24 24" class="h-3.5 w-3.5 shrink-0 text-slate-400" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+            </svg>
+          {% endif %}
         </div>
+        <p class="truncate text-xs text-slate-400">{{ message.sender_email }}</p>
       </div>
     </div>
 
+    {{-- 컬럼 2: 제목 + 스니펫 + 분류 --}}
     <div class="min-w-0">
       <a href="{{ url_for('mailbox.mail_detail', message_id=message.id, status=active_filter if active_filter != 'all' else None, hidden_keyword=active_hidden_keyword or None) }}" class="block">
         <p class="truncate text-sm font-semibold text-slate-900 transition group-hover:text-slate-950">{{ message.subject }}</p>
-        <p class="mt-1 truncate text-sm text-slate-500">{{ message.snippet }}</p>
+        <p class="mt-0.5 truncate text-sm text-slate-400">{{ message.snippet }}</p>
       </a>
-      <div class="mt-3 flex flex-wrap gap-2">
+      <div class="mt-2 flex items-center gap-1.5">
         {% if message.status_style == "danger" %}
-          <span class="rounded-full bg-rose-50 px-2 py-1 text-[11px] font-semibold text-rose-700">{{ message.classification }}</span>
+          <span class="text-[11px] font-medium text-rose-600">{{ message.classification }}</span>
         {% elif message.status_style == "warning" %}
-          <span class="rounded-full bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700">{{ message.classification }}</span>
+          <span class="text-[11px] font-medium text-amber-500">{{ message.classification }}</span>
         {% else %}
-          <span class="rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700">{{ message.classification }}</span>
+          <span class="text-[11px] font-medium text-emerald-600">{{ message.classification }}</span>
         {% endif %}
-        <span class="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-500">{{ message.classification_reason }}</span>
+        {% if message.classification_reason %}
+          <span class="text-[11px] text-slate-300">·</span>
+          <span class="text-[11px] text-slate-400">{{ message.classification_reason }}</span>
+        {% endif %}
       </div>
     </div>
 
-    <div class="justify-self-end text-right">
-      <p class="text-sm font-semibold text-slate-500">{{ message.display_date }}</p>
-      <div class="mt-2 flex flex-wrap justify-end gap-2">
-        {% if message.risk_style == "danger" %}
-          <span class="rounded-full bg-rose-50 px-2 py-1 text-[11px] font-semibold text-rose-700">위험 {{ message.risk_score }}</span>
-        {% elif message.risk_style == "warning" %}
-          <span class="rounded-full bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700">위험 {{ message.risk_score }}</span>
-        {% else %}
-          <span class="rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700">위험 {{ message.risk_score }}</span>
-        {% endif %}
-        {% for label in message.labels %}
-          <span class="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-500">{{ label }}</span>
-        {% endfor %}
-      </div>
+    {{-- 컬럼 3: 날짜 + 위험도 + 라벨 --}}
+    <div class="flex flex-col items-end gap-1 justify-self-end text-right">
+      <p class="text-sm font-medium text-slate-500">{{ message.display_date }}</p>
+      {% if message.risk_style == "danger" %}
+        <p class="text-[11px] font-semibold text-rose-500">위험 {{ message.risk_score }}</p>
+      {% elif message.risk_style == "warning" %}
+        <p class="text-[11px] font-semibold text-amber-500">위험 {{ message.risk_score }}</p>
+      {% else %}
+        <p class="text-[11px] font-medium text-emerald-500">위험 {{ message.risk_score }}</p>
+      {% endif %}
+      {% if message.labels %}
+        <p class="text-[10px] text-slate-300">{{ message.labels | join(' · ') }}</p>
+      {% endif %}
     </div>
+
   </article>
 {% endfor %}
