@@ -188,6 +188,37 @@ def test_google_callback_honors_https_from_reverse_proxy():
     assert response.status_code == 302
     assert (
         oauth_service.last_authorization_response
+        == "http://localhost/auth/google/callback?state=test-state&code=test-code"
+    )
+
+
+def test_google_callback_uses_configured_redirect_uri_for_token_exchange():
+    app = create_app(
+        {
+            "TESTING": True,
+            "USE_MOCK_DB": True,
+            "MONGO_URI": "mongodb://localhost:27017/testdb",
+            "MONGO_DB_NAME": "testdb",
+            "FLASK_SECRET_KEY": "test-secret",
+            "SECRET_KEY": "test-secret",
+            "TOKEN_ENCRYPTION_KEY": "2mZiMlo9W2Mvo1FnvnDw0Javxk28M6DkPF-P9o_6toU=",
+            "GOOGLE_CLIENT_ID": "client-id",
+            "GOOGLE_CLIENT_SECRET": "client-secret",
+            "GOOGLE_REDIRECT_URI": "https://mail.woonyong.org/auth/google/callback",
+        }
+    )
+    app.extensions["oauth_service"] = FakeOAuthService()
+    app.extensions["gmail_service"] = FakeGmailService()
+    client = app.test_client()
+
+    with client.session_transaction() as session:
+        session["oauth_state"] = "test-state"
+
+    response = client.get("/auth/google/callback?state=test-state&code=test-code")
+
+    assert response.status_code == 302
+    assert (
+        app.extensions["oauth_service"].last_authorization_response
         == "https://mail.woonyong.org/auth/google/callback?state=test-state&code=test-code"
     )
 

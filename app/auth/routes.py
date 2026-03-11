@@ -46,7 +46,13 @@ def google_callback():
     user_repository = get_user_repository()
 
     try:
-        token_payload = oauth_service.exchange_code(received_state, request.url)
+        authorization_response = current_app.config["GOOGLE_REDIRECT_URI"]
+        if request.query_string:
+            authorization_response = (
+                f"{authorization_response}?{request.query_string.decode('utf-8')}"
+            )
+
+        token_payload = oauth_service.exchange_code(received_state, authorization_response)
         profile = oauth_service.fetch_userinfo(token_payload["access_token"])
         existing_user = user_repository.get_by_google_sub(profile["sub"])
 
