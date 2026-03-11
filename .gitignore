@@ -11,9 +11,15 @@ dist/
 coverage/
 build/
 
-# environment
+# environment (.env.example 은 커밋 대상 — 실제 .env 만 제외)
 .env
-.env.*
+
+# python virtual environment
+.venv/
+venv/
+
+# logs
+logs/
 
 # misc
 .DS_Store
