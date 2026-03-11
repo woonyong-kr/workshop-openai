@@ -1,4 +1,4 @@
-import base64
+﻿import base64
 import html
 import re
 from datetime import datetime
@@ -9,7 +9,7 @@ from googleapiclient.discovery import build
 
 
 class GmailService:
-    STATUS_STYLES = {"격리": "danger", "검토": "warning", "안전": "success"}
+    STATUS_STYLES = {"격리": "danger", "보류": "warning", "일반": "success"}
     RISK_STYLES = {"높음": "danger", "중간": "warning", "낮음": "success"}
     TRUSTED_DOMAINS = ["gmail.com", "google.com", "woonyong.org"]
     PHISHING_KEYWORDS = [
@@ -25,7 +25,7 @@ class GmailService:
         "보안",
         "로그인",
         "비밀번호",
-        "제한",
+        "기한",
         "차단",
         "결제",
     ]
@@ -42,33 +42,8 @@ class GmailService:
     ]
     RISKY_EXTENSIONS = [".html", ".htm", ".exe", ".js", ".scr", ".bat", ".cmd", ".docm", ".xlsm"]
     ALLOWED_TAGS = [
-        "a",
-        "b",
-        "blockquote",
-        "br",
-        "code",
-        "div",
-        "em",
-        "h1",
-        "h2",
-        "h3",
-        "h4",
-        "h5",
-        "h6",
-        "hr",
-        "li",
-        "ol",
-        "p",
-        "pre",
-        "span",
-        "strong",
-        "table",
-        "tbody",
-        "td",
-        "th",
-        "thead",
-        "tr",
-        "ul",
+        "a", "b", "blockquote", "br", "code", "div", "em", "h1", "h2", "h3", "h4", "h5", "h6",
+        "hr", "li", "ol", "p", "pre", "span", "strong", "table", "tbody", "td", "th", "thead", "tr", "ul",
     ]
     ALLOWED_ATTRIBUTES = {
         "a": ["href", "title", "target", "rel"],
@@ -82,12 +57,13 @@ class GmailService:
 
     def list_message_page(self, user, cursor=None):
         service = self._build_service_for_user(user)
+        page_size = self.user_repository.get_settings(user)["mailbox_page_size"]
         response = (
             service.users()
             .messages()
             .list(
                 userId="me",
-                maxResults=self.page_size,
+                maxResults=page_size,
                 pageToken=cursor,
                 includeSpamTrash=False,
             )
@@ -97,40 +73,26 @@ class GmailService:
         message_ids = [message_meta["id"] for message_meta in response.get("messages", [])]
         metadata_by_id = self._fetch_message_metadata_batch(service, message_ids)
         messages = [
-            self._build_message_summary(metadata_by_id[message_id])
+            self._build_message_summary(user, metadata_by_id[message_id])
             for message_id in message_ids
             if message_id in metadata_by_id
         ]
 
-        return {
-            "messages": messages,
-            "next_cursor": response.get("nextPageToken"),
-        }
+        return {"messages": messages, "next_cursor": response.get("nextPageToken")}
 
     def get_message_detail(self, user, message_id):
         service = self._build_service_for_user(user)
-        message = (
-            service.users()
-            .messages()
-            .get(userId="me", id=message_id, format="full")
-            .execute()
-        )
-        return self._build_message_detail(message)
+        message = service.users().messages().get(userId="me", id=message_id, format="full").execute()
+        return self._build_message_detail(user, message)
 
     def trash_messages(self, user, message_ids):
         service = self._build_service_for_user(user)
-
         for message_id in message_ids:
             service.users().messages().trash(userId="me", id=message_id).execute()
 
     def download_attachment(self, user, message_id, part_id):
         service = self._build_service_for_user(user)
-        message = (
-            service.users()
-            .messages()
-            .get(userId="me", id=message_id, format="full")
-            .execute()
-        )
+        message = service.users().messages().get(userId="me", id=message_id, format="full").execute()
 
         part = self._find_part_by_id(message.get("payload", {}), part_id)
         if part is None:
@@ -142,11 +104,7 @@ class GmailService:
                 service.users()
                 .messages()
                 .attachments()
-                .get(
-                    userId="me",
-                    messageId=message_id,
-                    id=body["attachmentId"],
-                )
+                .get(userId="me", messageId=message_id, id=body["attachmentId"])
                 .execute()
             )
             data = attachment.get("data", "")
@@ -161,9 +119,7 @@ class GmailService:
 
     def _build_service_for_user(self, user):
         token_payload = self.user_repository.get_token_payload(user)
-        credentials, refreshed_payload, refreshed = self.oauth_service.ensure_valid_credentials(
-            token_payload
-        )
+        credentials, refreshed_payload, refreshed = self.oauth_service.ensure_valid_credentials(token_payload)
 
         if refreshed:
             self.user_repository.update_token_payload(user["id"], refreshed_payload)
@@ -189,16 +145,11 @@ class GmailService:
             if exception is not None or response is None:
                 failed_ids.append(request_id)
                 return
-
             responses[request_id] = response
 
         try:
             for message_id in message_ids:
-                batch.add(
-                    self._build_message_metadata_request(service, message_id),
-                    request_id=message_id,
-                    callback=callback,
-                )
+                batch.add(self._build_message_metadata_request(service, message_id), request_id=message_id, callback=callback)
             batch.execute()
         except Exception:
             return self._fetch_message_metadata_sequential(service, message_ids)
@@ -217,18 +168,14 @@ class GmailService:
         }
 
     def _build_message_metadata_request(self, service, message_id):
-        return (
-            service.users()
-            .messages()
-            .get(
-                userId="me",
-                id=message_id,
-                format="metadata",
-                metadataHeaders=["From", "Subject", "Date"],
-            )
+        return service.users().messages().get(
+            userId="me",
+            id=message_id,
+            format="metadata",
+            metadataHeaders=["From", "Subject", "Date"],
         )
 
-    def _build_message_summary(self, message):
+    def _build_message_summary(self, user, message):
         payload = message.get("payload", {})
         headers = payload.get("headers", [])
         from_header = self._extract_header(headers, "From")
@@ -237,6 +184,7 @@ class GmailService:
         received_at = self._message_datetime(message, headers)
         labels = message.get("labelIds", [])
         classification = self._classify_message(
+            user=user,
             subject=subject,
             sender_email=sender_email,
             content_text=f"{subject}\n{message.get('snippet', '')}",
@@ -248,7 +196,7 @@ class GmailService:
             "thread_id": message.get("threadId"),
             "subject": subject,
             "snippet": message.get("snippet") or "본문 미리보기가 없습니다.",
-            "sender_name": sender_name or sender_email or "알 수 없는 발신자",
+            "sender_name": sender_name or sender_email or "이름 없는 발신자",
             "sender_email": sender_email or "unknown@example.com",
             "sender_initial": (sender_name or sender_email or "?")[:1].upper(),
             "display_date": self._format_list_date(received_at),
@@ -259,7 +207,7 @@ class GmailService:
             **classification,
         }
 
-    def _build_message_detail(self, message):
+    def _build_message_detail(self, user, message):
         payload = message.get("payload", {})
         headers = payload.get("headers", [])
         from_header = self._extract_header(headers, "From")
@@ -277,6 +225,7 @@ class GmailService:
         image_attachments = [item for item in attachments if item["is_image"]]
         file_attachments = [item for item in attachments if not item["is_image"]]
         classification = self._classify_message(
+            user=user,
             subject=self._extract_header(headers, "Subject") or "(제목 없음)",
             sender_email=sender_email,
             content_text=f"{message.get('snippet', '')}\n{body_text}",
@@ -288,7 +237,7 @@ class GmailService:
             "thread_id": message.get("threadId"),
             "subject": self._extract_header(headers, "Subject") or "(제목 없음)",
             "snippet": message.get("snippet") or "",
-            "sender_name": sender_name or sender_email or "알 수 없는 발신자",
+            "sender_name": sender_name or sender_email or "이름 없는 발신자",
             "sender_email": sender_email or "unknown@example.com",
             "sender_initial": (sender_name or sender_email or "?")[:1].upper(),
             "to": to_header or "수신자 정보 없음",
@@ -297,6 +246,7 @@ class GmailService:
             "full_date": self._format_detail_date(received_at),
             "display_date": self._format_list_date(received_at),
             "body_html": body_html,
+            "body_text": body_text,
             "attachments": attachments,
             "image_attachments": image_attachments,
             "file_attachments": file_attachments,
@@ -345,10 +295,7 @@ class GmailService:
             return "<p>표시할 본문이 없습니다.</p>"
 
         escaped = html.escape(text)
-        paragraphs = [
-            f"<p>{paragraph.replace(chr(10), '<br>')}</p>"
-            for paragraph in escaped.split("\n\n")
-        ]
+        paragraphs = [f"<p>{paragraph.replace(chr(10), '<br>')}</p>" for paragraph in escaped.split("\n\n")]
         return "".join(paragraphs)
 
     def _html_to_text(self, value):
@@ -373,7 +320,11 @@ class GmailService:
         for child in part.get("parts", []):
             self._collect_attachment_names(child, names)
 
-    def _classify_message(self, subject, sender_email, content_text, attachment_names):
+    def _classify_message(self, user, subject, sender_email, content_text, attachment_names):
+        settings = self.user_repository.get_settings(user)
+        review_threshold = settings["review_threshold"]
+        quarantine_threshold = max(review_threshold + 1, settings["quarantine_threshold"])
+
         text = f"{subject}\n{content_text}".lower()
         score = 15
         evidence = []
@@ -381,18 +332,18 @@ class GmailService:
 
         if any(keyword in text for keyword in self.PHISHING_KEYWORDS):
             score += 35
-            evidence.append("본문에 계정 확인, 로그인, 결제 또는 긴급 조치 유도 표현이 포함됨")
+            evidence.append("본문에 계정 확인, 로그인, 결제, 보안 관련 표현이 포함되어 있습니다.")
             reason_flags.add("본문 내용")
 
         if any(keyword in text for keyword in self.MARKETING_KEYWORDS):
             score += 18
-            evidence.append("광고성 또는 반복 제안성 문구가 감지됨")
+            evidence.append("광고 또는 반복 제안으로 보이는 문구가 감지되었습니다.")
             reason_flags.add("본문 내용")
 
         sender_domain = sender_email.split("@")[-1].lower() if "@" in sender_email else ""
         if sender_domain and all(not sender_domain.endswith(domain) for domain in self.TRUSTED_DOMAINS):
             score += 12
-            evidence.append("발신 도메인이 내부 신뢰 도메인 목록과 일치하지 않음")
+            evidence.append("발신 도메인이 신뢰 도메인 목록과 일치하지 않습니다.")
 
         risky_attachment = next(
             (
@@ -404,25 +355,25 @@ class GmailService:
         )
         if risky_attachment:
             score += 30
-            evidence.append(f"위험 가능 첨부물 감지: {risky_attachment}")
-            reason_flags.add("첨부물")
+            evidence.append(f"위험 가능성이 있는 첨부파일이 있습니다: {risky_attachment}")
+            reason_flags.add("첨부파일")
 
         score = min(score, 99)
-        if score >= 80:
+        if score >= quarantine_threshold:
             status = "격리"
-            classification = "격리 추천"
+            classification = "격리 권장"
             risk_level = "높음"
-        elif score >= 45:
-            status = "검토"
-            classification = "검토 필요"
+        elif score >= review_threshold:
+            status = "보류"
+            classification = "보류 필요"
             risk_level = "중간"
         else:
-            status = "안전"
-            classification = "정상 메일"
+            status = "일반"
+            classification = "일반 메일"
             risk_level = "낮음"
 
         if not evidence:
-            evidence.append("위험 키워드 또는 첨부물 이상 징후가 크게 감지되지 않음")
+            evidence.append("위험 키워드나 첨부파일 이상 징후가 뚜렷하게 감지되지 않았습니다.")
 
         classification_reason = " + ".join(sorted(reason_flags)) if reason_flags else "본문 내용"
         return {
@@ -461,9 +412,7 @@ class GmailService:
         return value.strftime("%Y.%m.%d")
 
     def _format_detail_date(self, value):
-        return value.strftime("%Y년 %m월 %d일 %p %I:%M").replace("AM", "오전").replace(
-            "PM", "오후"
-        )
+        return value.strftime("%Y년 %m월 %d일 %p %I:%M").replace("AM", "오전").replace("PM", "오후")
 
     def _extract_header(self, headers, name):
         name = name.lower()

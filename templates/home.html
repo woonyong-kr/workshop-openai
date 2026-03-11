@@ -1,170 +1,172 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}{{ app_name }} | Gmail Viewer{% endblock %}
 {% block body_class %}win11-body min-h-screen overflow-x-hidden bg-[#f5f8fc] text-slate-900 antialiased{% endblock %}
 
 {% block content %}
-  <div class="relative overflow-hidden">
-    <div class="absolute inset-x-0 top-0 h-[34rem] bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.18),_transparent_38%),radial-gradient(circle_at_top_right,_rgba(56,189,248,0.2),_transparent_34%),linear-gradient(180deg,#f8fbff_0%,#f5f8fc_54%,#eef3f9_100%)]"></div>
-    <div class="absolute -left-24 top-32 h-72 w-72 rounded-full bg-sky-200/35 blur-3xl"></div>
-    <div class="absolute right-0 top-24 h-80 w-80 rounded-full bg-cyan-100/50 blur-3xl"></div>
+  <div class="min-h-screen lg:flex">
+    <aside class="hidden w-80 shrink-0 border-r border-white/80 bg-white/90 px-6 py-8 backdrop-blur lg:flex lg:flex-col">
+      <div>
+        <div class="flex items-center gap-3">
+          <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950 text-base font-semibold text-white">
+            {{ app_name[:1] }}
+          </span>
+          <div>
+            <p class="text-sm font-semibold text-slate-900">{{ app_name }}</p>
+            <p class="text-xs text-slate-500">Google Mail Viewer</p>
+          </div>
+        </div>
 
-    <header class="relative mx-auto flex max-w-7xl items-center justify-between px-4 py-6 sm:px-6 lg:px-8">
-      <div class="flex items-center gap-3">
-        <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-base font-semibold text-white">
-          {{ app_name[:1] }}
-        </span>
-        <div>
-          <p class="text-sm font-semibold text-slate-950">{{ app_name }}</p>
-          <p class="text-xs text-slate-500">Google Mail Viewer</p>
+        <div class="mt-10 space-y-2">
+          <span class="sidebar-link sidebar-link-active">
+            <span class="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
+              <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M4 7h16v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Z" />
+                <path d="m4 8 8 6 8-6" />
+              </svg>
+            </span>
+            <span>홈</span>
+          </span>
+
+          <a href="{{ url_for('core.privacy') }}" class="sidebar-link">
+            <span class="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
+              <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M12 3l7 4v5c0 5-3.5 7.5-7 9-3.5-1.5-7-4-7-9V7l7-4Z" />
+                <path d="M9.5 12.5 11 14l3.5-4" />
+              </svg>
+            </span>
+            <span>개인정보 안내</span>
+          </a>
         </div>
       </div>
 
-      <nav class="flex items-center gap-3">
-        <a href="{{ url_for('core.privacy') }}" class="rounded-full border border-slate-200/80 bg-white/80 px-4 py-2 text-sm font-medium text-slate-600 shadow-sm backdrop-blur transition hover:border-slate-300 hover:text-slate-900">
-          개인정보
-        </a>
-        {% if setup_ready %}
-          <a href="{{ url_for('auth.google_start') }}" class="inline-flex items-center gap-2 rounded-full bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_18px_40px_-18px_rgba(15,23,42,0.65)] transition hover:bg-slate-800">
-            <svg viewBox="0 0 24 24" class="h-4 w-4" aria-hidden="true">
-              <path fill="#EA4335" d="M12 11.4v3.5h5a4.3 4.3 0 0 1-1.9 2.8l2.9 2.2c1.7-1.6 2.7-3.9 2.7-6.9 0-.7-.1-1.4-.2-2H12Z"/>
-              <path fill="#34A853" d="M12 21c2.4 0 4.4-.8 5.8-2.1l-2.9-2.2c-.8.5-1.8.8-3 .8-2.3 0-4.3-1.6-5-3.7l-3 .2v2.3A8.8 8.8 0 0 0 12 21Z"/>
-              <path fill="#4A90E2" d="M7 13.8A5.3 5.3 0 0 1 6.7 12c0-.6.1-1.3.3-1.8V7.9h-3A8.8 8.8 0 0 0 3 12c0 1.4.3 2.8 1 4.1l3-2.3Z"/>
-              <path fill="#FBBC05" d="M12 6.5c1.3 0 2.5.5 3.4 1.3l2.6-2.6A8.8 8.8 0 0 0 4 7.9l3 2.3c.7-2.1 2.7-3.7 5-3.7Z"/>
-            </svg>
-            Google로 시작하기
-          </a>
-        {% else %}
-          <span class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/85 px-5 py-2.5 text-sm font-semibold text-slate-500 shadow-sm backdrop-blur">
-            설정 후 로그인 가능
-          </span>
-        {% endif %}
-      </nav>
-    </header>
-
-    <main class="relative mx-auto max-w-7xl px-4 pb-24 pt-10 sm:px-6 lg:px-8">
-      <section class="grid gap-12 lg:grid-cols-[minmax(0,1.15fr)_minmax(420px,0.85fr)] lg:items-center">
-        <div>
-          <div class="inline-flex items-center gap-2 rounded-full border border-sky-200/70 bg-white/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.26em] text-sky-700 shadow-sm backdrop-blur">
-            Windows 11 inspired workspace
-          </div>
-          <h1 class="mt-8 max-w-3xl text-5xl font-semibold tracking-tight text-slate-950 sm:text-6xl">
-            Gmail을 더 차분하고 정돈된 흐름으로 읽는 뷰어
-          </h1>
-          <p class="mt-6 max-w-2xl text-lg leading-8 text-slate-600">
-            Google 로그인만으로 메일 목록과 상세를 연결합니다. 복잡한 동기화 없이 Gmail API에서 바로 불러오고,
-            화면은 Windows 11 앱처럼 차분한 유리판 레이어와 카드형 정보 구조로 정리했습니다.
+      <div class="mt-auto space-y-4">
+        <div class="rounded-[28px] border border-slate-200/80 bg-slate-50 p-5">
+          <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Landing</p>
+          <h2 class="mt-3 text-lg font-semibold text-slate-900">Gmail 연동 시작 화면</h2>
+          <p class="mt-2 text-sm leading-6 text-slate-500">
+            왼쪽은 서비스 진입용 메뉴, 오른쪽은 소개와 로그인 흐름을 보여주는 첫 화면입니다.
           </p>
+        </div>
 
-          <div class="mt-8 flex flex-wrap gap-3">
-            {% if setup_ready %}
-              <a href="{{ url_for('auth.google_start') }}" class="inline-flex items-center gap-2 rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white shadow-[0_24px_50px_-24px_rgba(15,23,42,0.75)] transition hover:bg-slate-800">
-                Google 계정 연결
-              </a>
-            {% else %}
-              <span class="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-5 py-3 text-sm font-semibold text-amber-700">
-                OAuth 설정이 필요합니다
-              </span>
-            {% endif %}
-            <a href="{{ url_for('core.privacy') }}" class="inline-flex items-center rounded-full border border-slate-200 bg-white/85 px-6 py-3 text-sm font-semibold text-slate-700 shadow-sm backdrop-blur transition hover:border-slate-300 hover:text-slate-900">
-              개인정보 안내
-            </a>
-          </div>
+        <a href="{{ url_for('core.settings_page') }}" class="sidebar-link">
+          <span class="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
+            <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M12 3.75a2.25 2.25 0 0 1 2.2 1.76l.12.54a1 1 0 0 0 .96.78h.54a2.25 2.25 0 0 1 1.59 3.84l-.39.39a1 1 0 0 0-.23 1.08l.21.51a2.25 2.25 0 0 1-2.08 3.1h-.56a1 1 0 0 0-.95.69l-.18.55a2.25 2.25 0 0 1-4.26 0l-.18-.55a1 1 0 0 0-.95-.69h-.56a2.25 2.25 0 0 1-2.08-3.1l.21-.51a1 1 0 0 0-.23-1.08l-.39-.39a2.25 2.25 0 0 1 1.59-3.84h.54a1 1 0 0 0 .96-.78l.12-.54A2.25 2.25 0 0 1 12 3.75Z" />
+              <path d="M12 9.75a2.25 2.25 0 1 0 0 4.5 2.25 2.25 0 0 0 0-4.5Z" />
+            </svg>
+          </span>
+          <span>설정</span>
+        </a>
+      </div>
+    </aside>
 
-          {% if not oauth_ready %}
-            <div class="mt-6 max-w-2xl rounded-[28px] border border-amber-200 bg-amber-50/95 p-5 text-sm leading-7 text-amber-800">
-              {{ oauth_warning }}
-            </div>
-          {% endif %}
+    <div class="relative flex-1 overflow-hidden">
+      <div class="absolute inset-x-0 top-0 h-[34rem] bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.18),_transparent_38%),radial-gradient(circle_at_top_right,_rgba(56,189,248,0.2),_transparent_34%),linear-gradient(180deg,#f8fbff_0%,#f5f8fc_54%,#eef3f9_100%)]"></div>
+      <div class="absolute -left-24 top-32 h-72 w-72 rounded-full bg-sky-200/35 blur-3xl"></div>
+      <div class="absolute right-0 top-24 h-80 w-80 rounded-full bg-cyan-100/50 blur-3xl"></div>
 
-          {% if not token_storage_ready %}
-            <div class="mt-4 max-w-2xl rounded-[28px] border border-amber-200 bg-amber-50/95 p-5 text-sm leading-7 text-amber-800">
-              TOKEN_ENCRYPTION_KEY 설정이 필요합니다. `.env.secret`에 유효한 Fernet 키를 넣어야 Google 토큰을 암호화해 저장할 수 있습니다.
-            </div>
-          {% endif %}
-
-          <div class="mt-10 grid gap-4 sm:grid-cols-3">
-            <div class="rounded-[28px] border border-white/80 bg-white/85 p-5 shadow-[0_20px_60px_-45px_rgba(14,165,233,0.55)] backdrop-blur">
-              <p class="text-sm font-semibold text-slate-900">실시간 조회</p>
-              <p class="mt-2 text-sm leading-6 text-slate-500">Mongo에는 사용자와 토큰만 저장하고, 메일은 Gmail에서 직접 읽습니다.</p>
-            </div>
-            <div class="rounded-[28px] border border-white/80 bg-white/85 p-5 shadow-[0_20px_60px_-45px_rgba(14,165,233,0.55)] backdrop-blur">
-              <p class="text-sm font-semibold text-slate-900">무한 스크롤</p>
-              <p class="mt-2 text-sm leading-6 text-slate-500">Gmail의 page token 흐름에 맞춰 자연스럽게 이어지는 목록 UX를 제공합니다.</p>
-            </div>
-            <div class="rounded-[28px] border border-white/80 bg-white/85 p-5 shadow-[0_20px_60px_-45px_rgba(14,165,233,0.55)] backdrop-blur">
-              <p class="text-sm font-semibold text-slate-900">상세 읽기</p>
-              <p class="mt-2 text-sm leading-6 text-slate-500">정제된 HTML 본문과 첨부파일 미리보기로 메일 내용을 안전하게 확인합니다.</p>
-            </div>
+      <header class="relative mx-auto flex max-w-7xl items-center justify-between px-4 py-6 sm:px-6 lg:px-8">
+        <div class="flex items-center gap-3 lg:hidden">
+          <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-base font-semibold text-white">
+            {{ app_name[:1] }}
+          </span>
+          <div>
+            <p class="text-sm font-semibold text-slate-950">{{ app_name }}</p>
+            <p class="text-xs text-slate-500">Google Mail Viewer</p>
           </div>
         </div>
 
-        <div class="rounded-[36px] border border-white/90 bg-white/90 p-6 shadow-[0_30px_80px_-40px_rgba(15,23,42,0.45)] backdrop-blur">
-          <div class="rounded-[30px] bg-slate-950 px-5 py-4 text-white">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm font-semibold">메일 워크스페이스</p>
-                <p class="mt-1 text-xs text-slate-300">Windows 11 workspace surface</p>
-              </div>
-              <span class="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-slate-200">Ready</span>
+        <nav class="ml-auto flex items-center gap-3">
+          <a href="{{ url_for('core.privacy') }}" class="rounded-full border border-slate-200/80 bg-white/80 px-4 py-2 text-sm font-medium text-slate-600 shadow-sm backdrop-blur transition hover:border-slate-300 hover:text-slate-900">
+            개인정보
+          </a>
+          {% if setup_ready %}
+            <a href="{{ url_for('auth.google_start') }}" class="inline-flex items-center gap-2 rounded-full bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_18px_40px_-18px_rgba(15,23,42,0.65)] transition hover:bg-slate-800">
+              <svg viewBox="0 0 24 24" class="h-4 w-4" aria-hidden="true">
+                <path fill="#EA4335" d="M12 11.4v3.5h5a4.3 4.3 0 0 1-1.9 2.8l2.9 2.2c1.7-1.6 2.7-3.9 2.7-6.9 0-.7-.1-1.4-.2-2H12Z"/>
+                <path fill="#34A853" d="M12 21c2.4 0 4.4-.8 5.8-2.1l-2.9-2.2c-.8.5-1.8.8-3 .8-2.3 0-4.3-1.6-5-3.7l-3 .2v2.3A8.8 8.8 0 0 0 12 21Z"/>
+                <path fill="#4A90E2" d="M7 13.8A5.3 5.3 0 0 1 6.7 12c0-.6.1-1.3.3-1.8V7.9h-3A8.8 8.8 0 0 0 3 12c0 1.4.3 2.8 1 4.1l3-2.3Z"/>
+                <path fill="#FBBC05" d="M12 6.5c1.3 0 2.5.5 3.4 1.3l2.6-2.6A8.8 8.8 0 0 0 4 7.9l3 2.3c.7-2.1 2.7-3.7 5-3.7Z"/>
+              </svg>
+              Google로 시작하기
+            </a>
+          {% else %}
+            <span class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/85 px-5 py-2.5 text-sm font-semibold text-slate-500 shadow-sm backdrop-blur">
+              설정 후 로그인 가능
+            </span>
+          {% endif %}
+        </nav>
+      </header>
+
+      <main class="relative mx-auto max-w-7xl px-4 pb-24 pt-10 sm:px-6 lg:px-8">
+        <section class="grid gap-12 lg:grid-cols-[minmax(0,1.15fr)_minmax(420px,0.85fr)] lg:items-center">
+          <div>
+            <div class="inline-flex items-center gap-2 rounded-full border border-sky-200/70 bg-white/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.26em] text-sky-700 shadow-sm backdrop-blur">
+              Windows 11 inspired workspace
             </div>
+            <h1 class="mt-8 max-w-3xl text-5xl font-semibold tracking-tight text-slate-950 sm:text-6xl">
+              Gmail을 더 차분하고 정돈된 흐름으로 읽는 뷰어
+            </h1>
+            <p class="mt-6 max-w-2xl text-lg leading-8 text-slate-600">
+              Google 로그인만으로 메일 목록과 상세를 연결합니다. 복잡한 동기화 없이 Gmail API에서 바로 불러오고,
+              화면은 Windows 11 스타일의 차분한 카드와 정보 구조로 정리했습니다.
+            </p>
+
+            <div class="mt-8 flex flex-wrap gap-3">
+              {% if setup_ready %}
+                <a href="{{ url_for('auth.google_start') }}" class="inline-flex items-center gap-2 rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white shadow-[0_24px_50px_-24px_rgba(15,23,42,0.75)] transition hover:bg-slate-800">
+                  Google 계정 연결
+                </a>
+              {% else %}
+                <span class="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-5 py-3 text-sm font-semibold text-amber-700">
+                  OAuth 설정이 필요합니다
+                </span>
+              {% endif %}
+              <a href="{{ url_for('core.privacy') }}" class="inline-flex items-center rounded-full border border-slate-200 bg-white/85 px-6 py-3 text-sm font-semibold text-slate-700 shadow-sm backdrop-blur transition hover:border-slate-300 hover:text-slate-900">
+                개인정보 안내
+              </a>
+            </div>
+
+            {% if not oauth_ready %}
+              <div class="mt-6 max-w-2xl rounded-[28px] border border-amber-200 bg-amber-50/95 p-5 text-sm leading-7 text-amber-800">
+                {{ oauth_warning }}
+              </div>
+            {% endif %}
+
+            {% if not token_storage_ready %}
+              <div class="mt-4 max-w-2xl rounded-[28px] border border-amber-200 bg-amber-50/95 p-5 text-sm leading-7 text-amber-800">
+                TOKEN_ENCRYPTION_KEY 설정이 필요합니다. `.env.secret`에 유효한 Fernet 키를 넣어야 Google 토큰을 암호화해 저장할 수 있습니다.
+              </div>
+            {% endif %}
           </div>
 
-          <div class="mt-5 space-y-4">
-            <div class="rounded-[28px] border border-slate-200/80 bg-slate-50 p-5">
+          <div class="rounded-[36px] border border-white/90 bg-white/90 p-6 shadow-[0_30px_80px_-40px_rgba(15,23,42,0.45)] backdrop-blur">
+            <div class="rounded-[30px] bg-slate-950 px-5 py-4 text-white">
               <div class="flex items-center justify-between">
                 <div>
-                  <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Live mailbox</p>
-                  <p class="mt-2 text-lg font-semibold text-slate-900">전체 메일을 한 화면에서 부드럽게 탐색</p>
+                  <p class="text-sm font-semibold">메일 워크스페이스</p>
+                  <p class="mt-1 text-xs text-slate-300">Windows 11 workspace surface</p>
                 </div>
-                <span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600">Inbox View</span>
-              </div>
-              <div class="mt-5 space-y-3">
-                <div class="rounded-2xl bg-white px-4 py-4 shadow-sm">
-                  <div class="flex items-center justify-between gap-3">
-                    <div>
-                      <p class="text-sm font-semibold text-slate-900">Google Workspace</p>
-                      <p class="mt-1 text-sm text-slate-500">보안 공지와 중요 알림을 한 번에 확인하세요.</p>
-                    </div>
-                    <span class="text-sm font-semibold text-slate-400">오전 9:42</span>
-                  </div>
-                </div>
-                <div class="rounded-2xl bg-white px-4 py-4 shadow-sm">
-                  <div class="flex items-center justify-between gap-3">
-                    <div>
-                      <p class="text-sm font-semibold text-slate-900">Windows 11 스타일 랜딩</p>
-                      <p class="mt-1 text-sm text-slate-500">첫 화면은 소개형, 실제 메일 화면은 작업형 워크스페이스로 연결됩니다.</p>
-                    </div>
-                    <span class="text-sm font-semibold text-slate-400">어제</span>
-                  </div>
-                </div>
-                <div class="rounded-2xl bg-white px-4 py-4 shadow-sm">
-                  <div class="flex items-center justify-between gap-3">
-                    <div>
-                      <p class="text-sm font-semibold text-slate-900">첨부 이미지 미리보기</p>
-                      <p class="mt-1 text-sm text-slate-500">상세 화면에서 이미지 첨부를 바로 확인할 수 있습니다.</p>
-                    </div>
-                    <span class="text-sm font-semibold text-slate-400">3월 10일</span>
-                  </div>
-                </div>
+                <span class="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-slate-200">Ready</span>
               </div>
             </div>
 
-            <div class="grid gap-4 sm:grid-cols-2">
+            <div class="mt-5 grid gap-4 sm:grid-cols-2">
               <div class="rounded-[28px] border border-slate-200/80 bg-slate-50 p-5">
-                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">OAuth</p>
-                <p class="mt-2 text-base font-semibold text-slate-900">Google 계정 인증과 로그인 유지</p>
-                <p class="mt-2 text-sm leading-6 text-slate-500">세션에는 사용자 식별자만 저장하고 토큰은 암호화해 MongoDB에 보관합니다.</p>
+                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">실시간 조회</p>
+                <p class="mt-2 text-base font-semibold text-slate-900">메일은 Gmail에서 직접 읽습니다</p>
+                <p class="mt-2 text-sm leading-6 text-slate-500">MongoDB에는 계정과 토큰만 저장하고 메일은 조회 시점에 불러옵니다.</p>
               </div>
               <div class="rounded-[28px] border border-slate-200/80 bg-slate-50 p-5">
-                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Detail View</p>
-                <p class="mt-2 text-base font-semibold text-slate-900">정제된 HTML 본문 렌더링</p>
-                <p class="mt-2 text-sm leading-6 text-slate-500">메일 HTML은 그대로 신뢰하지 않고 안전한 태그만 남겨 앱 레이아웃 위에 표시합니다.</p>
+                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">설정 진입</p>
+                <p class="mt-2 text-base font-semibold text-slate-900">왼쪽 하단 설정 버튼으로 이동</p>
+                <p class="mt-2 text-sm leading-6 text-slate-500">홈 화면에서도 설정 페이지로 바로 들어가 메일 관련 옵션을 확인할 수 있습니다.</p>
               </div>
             </div>
           </div>
-        </div>
-      </section>
-    </main>
+        </section>
+      </main>
+    </div>
   </div>
 {% endblock %}

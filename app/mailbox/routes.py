@@ -1,7 +1,8 @@
-import io
+﻿import io
 
 from flask import (
     Blueprint,
+    abort,
     current_app,
     flash,
     g,
@@ -19,14 +20,19 @@ from ..utils.auth import api_login_required, login_required
 bp = Blueprint("mailbox", __name__)
 STATUS_FILTERS = {
     "all": None,
-    "safe": "안전",
-    "review": "검토",
+    "safe": "일반",
+    "review": "보류",
     "quarantine": "격리",
 }
 
 
+def _user_settings():
+    return get_user_repository().get_settings(g.current_user)
+
+
 def _active_status_key():
-    key = request.args.get("status", "all")
+    default_key = _user_settings()["default_mail_view"]
+    key = request.args.get("status", default_key)
     return key if key in STATUS_FILTERS else "all"
 
 
@@ -34,14 +40,15 @@ def _active_hidden_keyword():
     return request.args.get("hidden_keyword", "").strip()
 
 
-def _filter_messages(messages, status_key, hidden_keywords, active_hidden_keyword):
+def _filter_messages(messages, status_key, hidden_keywords, active_hidden_keyword, apply_hidden_rules):
     target_status = STATUS_FILTERS.get(status_key)
     filtered = messages if target_status is None else [
         message for message in messages if message.get("status") == target_status
     ]
+    effective_hidden_keywords = hidden_keywords if apply_hidden_rules else []
     return get_visibility_service().filter_summaries(
         filtered,
-        hidden_keywords=hidden_keywords,
+        hidden_keywords=effective_hidden_keywords,
         active_hidden_keyword=active_hidden_keyword,
     )
 
@@ -55,7 +62,7 @@ def _mailbox_url(status_key, hidden_keyword=""):
     return url_for("mailbox.mailbox_home", **params)
 
 
-def _load_mailbox_page(status_key, hidden_keywords, active_hidden_keyword, cursor=None):
+def _load_mailbox_page(status_key, hidden_keywords, active_hidden_keyword, apply_hidden_rules, cursor=None):
     current_cursor = cursor
 
     while True:
@@ -65,10 +72,11 @@ def _load_mailbox_page(status_key, hidden_keywords, active_hidden_keyword, curso
             status_key,
             hidden_keywords,
             active_hidden_keyword,
+            apply_hidden_rules,
         )
 
         if filtered or not page["next_cursor"] or (
-            status_key == "all" and not hidden_keywords and not active_hidden_keyword
+            status_key == "all" and (not hidden_keywords or not apply_hidden_rules) and not active_hidden_keyword
         ):
             return {"messages": filtered, "next_cursor": page["next_cursor"]}
 
@@ -84,18 +92,20 @@ def mailbox_home():
     active_filter = _active_status_key()
     active_hidden_keyword = _active_hidden_keyword()
     hidden_keywords = get_user_repository().get_hidden_keywords(g.current_user)
+    settings = _user_settings()
 
     try:
         page = _load_mailbox_page(
             active_filter,
             hidden_keywords,
             active_hidden_keyword,
+            settings["apply_hidden_rules"],
         )
         messages = page["messages"]
         next_cursor = page["next_cursor"]
-    except Exception:  # pragma: no cover - depends on external API
+    except Exception:
         current_app.logger.exception("Failed to load mailbox")
-        error_message = "메일 목록을 가져오지 못했습니다. Google 권한과 설정을 확인해주세요."
+        error_message = "메일 목록을 불러오지 못했습니다. Google 권한과 설정을 확인해주세요."
 
     return render_template(
         "mailbox.html",
@@ -104,6 +114,8 @@ def mailbox_home():
         error_message=error_message,
         active_filter=active_filter,
         active_hidden_keyword=active_hidden_keyword,
+        settings=settings,
+        hidden_keywords=hidden_keywords,
     )
 
 
@@ -114,12 +126,14 @@ def mailbox_feed():
     active_filter = _active_status_key()
     active_hidden_keyword = _active_hidden_keyword()
     hidden_keywords = get_user_repository().get_hidden_keywords(g.current_user)
+    settings = _user_settings()
 
     try:
         page = _load_mailbox_page(
             active_filter,
             hidden_keywords,
             active_hidden_keyword,
+            settings["apply_hidden_rules"],
             cursor=cursor,
         )
         html = render_template(
@@ -129,16 +143,9 @@ def mailbox_feed():
             active_hidden_keyword=active_hidden_keyword,
         )
         return jsonify({"html": html, "next_cursor": page["next_cursor"]})
-    except Exception:  # pragma: no cover - depends on external API
+    except Exception:
         current_app.logger.exception("Failed to extend mailbox feed")
-        return (
-            jsonify(
-                {
-                    "error": "메일을 더 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
-                }
-            ),
-            502,
-        )
+        return jsonify({"error": "메일을 더 불러오지 못했습니다. 잠시 후 다시 시도해주세요."}), 502
 
 
 @bp.post("/mail/bulk-trash")
@@ -148,13 +155,13 @@ def bulk_trash_messages():
     active_filter = _active_status_key()
     active_hidden_keyword = request.form.get("hidden_keyword", "").strip()
     if not message_ids:
-        flash("휴지통으로 이동할 메일을 먼저 선택해주세요.", "error")
+        flash("이동할 메일을 먼저 선택해주세요.", "error")
         return redirect(_mailbox_url(active_filter, active_hidden_keyword))
 
     try:
         get_gmail_service().trash_messages(g.current_user, message_ids)
         flash(f"{len(message_ids)}개 메일을 Gmail 휴지통으로 이동했습니다.", "success")
-    except Exception:  # pragma: no cover - depends on external API
+    except Exception:
         current_app.logger.exception("Failed to trash selected messages")
         flash("메일을 휴지통으로 이동하지 못했습니다. 잠시 후 다시 시도해주세요.", "error")
 
@@ -201,14 +208,15 @@ def mail_detail(message_id):
     message = None
     active_filter = _active_status_key()
     active_hidden_keyword = _active_hidden_keyword()
+    settings = _user_settings()
 
     try:
         message = get_visibility_service().filter_detail(
             get_gmail_service().get_message_detail(g.current_user, message_id)
         )
-    except Exception:  # pragma: no cover - depends on external API
+    except Exception:
         current_app.logger.exception("Failed to load message detail")
-        error_message = "메일 상세를 가져오지 못했습니다. 잠시 후 다시 시도해주세요."
+        error_message = "메일 상세를 불러오지 못했습니다. 잠시 후 다시 시도해주세요."
 
     return render_template(
         "mail_detail.html",
@@ -216,12 +224,16 @@ def mail_detail(message_id):
         error_message=error_message,
         active_filter=active_filter,
         active_hidden_keyword=active_hidden_keyword,
+        settings=settings,
     )
 
 
 @bp.get("/mail/<message_id>/attachments/<part_id>")
 @login_required
 def mail_attachment(message_id, part_id):
+    if not _user_settings()["allow_attachment_downloads"]:
+        abort(403)
+
     attachment = get_gmail_service().download_attachment(g.current_user, message_id, part_id)
     as_attachment = request.args.get("download") == "1"
 
@@ -241,18 +253,12 @@ def trash_single_message(message_id):
     try:
         get_gmail_service().trash_messages(g.current_user, [message_id])
         flash("메일을 Gmail 휴지통으로 이동했습니다.", "success")
-    except Exception:  # pragma: no cover - depends on external API
+    except Exception:
         current_app.logger.exception("Failed to trash message")
         flash("메일을 휴지통으로 이동하지 못했습니다. 잠시 후 다시 시도해주세요.", "error")
         if active_filter == "all":
             if active_hidden_keyword:
-                return redirect(
-                    url_for(
-                        "mailbox.mail_detail",
-                        message_id=message_id,
-                        hidden_keyword=active_hidden_keyword,
-                    )
-                )
+                return redirect(url_for("mailbox.mail_detail", message_id=message_id, hidden_keyword=active_hidden_keyword))
             return redirect(url_for("mailbox.mail_detail", message_id=message_id))
         return redirect(
             url_for(

@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+﻿from datetime import datetime, timezone
 
 from bson import ObjectId
 from pymongo import ReturnDocument
@@ -7,6 +7,22 @@ from ..utils.crypto import decrypt_payload, encrypt_payload
 
 
 class UserRepository:
+    DEFAULT_SETTINGS = {
+        "mailbox_page_size": 20,
+        "default_mail_view": "all",
+        "review_threshold": 45,
+        "quarantine_threshold": 80,
+        "apply_hidden_rules": True,
+        "allow_unsubscribe_actions": False,
+        "confirm_unsubscribe_actions": True,
+        "keep_unsubscribe_history": True,
+        "show_html_preview": True,
+        "allow_attachment_downloads": True,
+        "sync_failure_alerts": True,
+        "quarantine_alerts": True,
+        "daily_summary_email": False,
+    }
+
     def __init__(self, mongo_db, fernet):
         self.collection = mongo_db["users"]
         self.fernet = fernet
@@ -130,6 +146,21 @@ class UserRepository:
         )
         return keywords
 
+    def get_settings(self, user):
+        raw_settings = {}
+        if user is not None:
+            raw_settings = user.get("settings", {}) or {}
+        return self._normalize_settings(raw_settings)
+
+    def update_settings(self, user_id, settings):
+        normalized = self._normalize_settings(settings)
+        self.collection.update_one(
+            {"_id": ObjectId(user_id)},
+            {"$set": {"settings": normalized, "updated_at": _utcnow()}},
+        )
+        user = self.collection.find_one({"_id": ObjectId(user_id)})
+        return self._serialize(user)
+
     def _serialize(self, user):
         if user is None:
             return None
@@ -137,6 +168,49 @@ class UserRepository:
         data = dict(user)
         data["id"] = str(data.pop("_id"))
         return data
+
+    def _normalize_settings(self, settings):
+        merged = dict(self.DEFAULT_SETTINGS)
+        if isinstance(settings, dict):
+            merged.update(settings)
+
+        mailbox_page_size = _coerce_int(
+            merged.get("mailbox_page_size"),
+            default=self.DEFAULT_SETTINGS["mailbox_page_size"],
+            minimum=10,
+            maximum=100,
+        )
+        review_threshold = _coerce_int(
+            merged.get("review_threshold"),
+            default=self.DEFAULT_SETTINGS["review_threshold"],
+            minimum=10,
+            maximum=95,
+        )
+        quarantine_threshold = _coerce_int(
+            merged.get("quarantine_threshold"),
+            default=self.DEFAULT_SETTINGS["quarantine_threshold"],
+            minimum=review_threshold + 1,
+            maximum=99,
+        )
+        default_view = merged.get("default_mail_view", self.DEFAULT_SETTINGS["default_mail_view"])
+        if default_view not in {"all", "safe", "review", "quarantine"}:
+            default_view = self.DEFAULT_SETTINGS["default_mail_view"]
+
+        return {
+            "mailbox_page_size": mailbox_page_size,
+            "default_mail_view": default_view,
+            "review_threshold": review_threshold,
+            "quarantine_threshold": quarantine_threshold,
+            "apply_hidden_rules": bool(merged.get("apply_hidden_rules")),
+            "allow_unsubscribe_actions": bool(merged.get("allow_unsubscribe_actions")),
+            "confirm_unsubscribe_actions": bool(merged.get("confirm_unsubscribe_actions")),
+            "keep_unsubscribe_history": bool(merged.get("keep_unsubscribe_history")),
+            "show_html_preview": bool(merged.get("show_html_preview")),
+            "allow_attachment_downloads": bool(merged.get("allow_attachment_downloads")),
+            "sync_failure_alerts": bool(merged.get("sync_failure_alerts")),
+            "quarantine_alerts": bool(merged.get("quarantine_alerts")),
+            "daily_summary_email": bool(merged.get("daily_summary_email")),
+        }
 
 
 def _utcnow():
@@ -151,3 +225,12 @@ def _parse_expiry(expiry_value):
     if parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=timezone.utc)
     return parsed.astimezone(timezone.utc)
+
+
+def _coerce_int(value, default, minimum, maximum):
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        parsed = default
+
+    return max(minimum, min(maximum, parsed))

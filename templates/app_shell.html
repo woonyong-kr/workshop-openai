@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block body_class %}win11-body min-h-screen bg-slate-100 text-slate-900 antialiased{% endblock %}
 
@@ -50,70 +50,41 @@
           </span>
           <span>숨김 규칙</span>
           {% if sidebar_hidden_keyword %}
-            <span class="ml-auto rounded-full bg-slate-900 px-2 py-1 text-[11px] font-semibold text-white">활성</span>
+            <span class="ml-auto rounded-full bg-slate-900 px-2 py-1 text-[11px] font-semibold text-white">적용</span>
           {% else %}
-            <span class="ml-auto rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-500">토글</span>
+            <span class="ml-auto rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-500">보기</span>
           {% endif %}
         </a>
       </nav>
 
       <div class="mt-8 space-y-2">
         <p class="px-4 text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">분류 보기</p>
-        <a href="{{ url_for('mailbox.mailbox_home') }}" class="sidebar-link {% if sidebar_filter == 'all' %}sidebar-link-active{% endif %}">
-          <span>전체 메일</span>
-        </a>
-        <a href="{{ url_for('mailbox.mailbox_home', status='safe') }}" class="sidebar-link {% if sidebar_filter == 'safe' %}sidebar-link-active{% endif %}">
-          <span>정상 메일만</span>
-        </a>
-        <a href="{{ url_for('mailbox.mailbox_home', status='review') }}" class="sidebar-link {% if sidebar_filter == 'review' %}sidebar-link-active{% endif %}">
-          <span>검토 메일만</span>
-        </a>
-        <a href="{{ url_for('mailbox.mailbox_home', status='quarantine') }}" class="sidebar-link {% if sidebar_filter == 'quarantine' %}sidebar-link-active{% endif %}">
-          <span>격리 메일만</span>
-        </a>
+        <a href="{{ url_for('mailbox.mailbox_home') }}" class="sidebar-link {% if sidebar_filter == 'all' %}sidebar-link-active{% endif %}"><span>전체 메일</span></a>
+        <a href="{{ url_for('mailbox.mailbox_home', status='safe') }}" class="sidebar-link {% if sidebar_filter == 'safe' %}sidebar-link-active{% endif %}"><span>일반 메일만</span></a>
+        <a href="{{ url_for('mailbox.mailbox_home', status='review') }}" class="sidebar-link {% if sidebar_filter == 'review' %}sidebar-link-active{% endif %}"><span>보류 메일만</span></a>
+        <a href="{{ url_for('mailbox.mailbox_home', status='quarantine') }}" class="sidebar-link {% if sidebar_filter == 'quarantine' %}sidebar-link-active{% endif %}"><span>격리 메일만</span></a>
       </div>
 
       <div id="hide-rules-panel" class="mt-8 rounded-[28px] border border-slate-200/80 bg-slate-50 p-5">
         <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">숨김 규칙</p>
-        <p class="mt-2 text-sm leading-6 text-slate-500">
-          키워드를 추가하면 기본 목록에서는 숨기고, 아래 토글 버튼에서만 묶어서 볼 수 있습니다.
-        </p>
+        <p class="mt-2 text-sm leading-6 text-slate-500">키워드를 추가하면 기본 목록에서 숨기고 아래 버튼으로만 다시 볼 수 있습니다.</p>
 
         <form method="post" action="{{ url_for('mailbox.add_hidden_rule') }}" class="mt-4 flex gap-2">
           <input type="hidden" name="status" value="{{ sidebar_filter }}" />
-          <input
-            type="text"
-            name="keyword"
-            placeholder="예: invoice, 광고, 프로모션"
-            class="min-w-0 flex-1 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 outline-none"
-          />
-          <button type="submit" class="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
-            추가
-          </button>
+          <input type="text" name="keyword" placeholder="예: invoice, 광고, 프로모션" class="min-w-0 flex-1 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 outline-none" />
+          <button type="submit" class="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">추가</button>
         </form>
 
         <div class="mt-4 flex flex-wrap gap-2">
-          <a
-            href="{{ url_for('mailbox.mailbox_home', status=sidebar_filter if sidebar_filter != 'all' else None) }}"
-            class="rounded-full px-3 py-2 text-sm font-semibold {% if not sidebar_hidden_keyword %}bg-slate-900 text-white{% else %}bg-white text-slate-600{% endif %}"
-          >
-            기본 목록
-          </a>
+          <a href="{{ url_for('mailbox.mailbox_home', status=sidebar_filter if sidebar_filter != 'all' else None) }}" class="rounded-full px-3 py-2 text-sm font-semibold {% if not sidebar_hidden_keyword %}bg-slate-900 text-white{% else %}bg-white text-slate-600{% endif %}">기본 목록</a>
           {% for keyword in hidden_keywords %}
             <div class="flex items-center rounded-full {% if sidebar_hidden_keyword == keyword %}bg-slate-900 text-white{% else %}bg-white text-slate-700{% endif %}">
-              <a
-                href="{{ url_for('mailbox.mailbox_home', status=sidebar_filter if sidebar_filter != 'all' else None, hidden_keyword=keyword) }}"
-                class="px-3 py-2 text-sm font-semibold"
-              >
-                {{ keyword }}
-              </a>
+              <a href="{{ url_for('mailbox.mailbox_home', status=sidebar_filter if sidebar_filter != 'all' else None, hidden_keyword=keyword) }}" class="px-3 py-2 text-sm font-semibold">{{ keyword }}</a>
               <form method="post" action="{{ url_for('mailbox.remove_hidden_rule') }}">
                 <input type="hidden" name="status" value="{{ sidebar_filter }}" />
                 <input type="hidden" name="active_hidden_keyword" value="{{ sidebar_hidden_keyword }}" />
                 <input type="hidden" name="keyword" value="{{ keyword }}" />
-                <button type="submit" class="px-3 py-2 text-xs font-semibold {% if sidebar_hidden_keyword == keyword %}text-white{% else %}text-slate-500{% endif %}">
-                  제거
-                </button>
+                <button type="submit" class="px-3 py-2 text-xs font-semibold {% if sidebar_hidden_keyword == keyword %}text-white{% else %}text-slate-500{% endif %}">삭제</button>
               </form>
             </div>
           {% endfor %}
@@ -123,24 +94,22 @@
       <div class="workspace-note mt-auto rounded-[28px] p-5">
         <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Workspace</p>
         <h2 class="mt-3 text-lg font-semibold text-slate-900">현재 작업 보기</h2>
-        <p class="mt-2 text-sm leading-6 text-slate-500">
-          {% if sidebar_hidden_keyword %}
-            '{{ sidebar_hidden_keyword }}' 규칙으로 숨겨진 메일만 보는 중입니다.
-          {% elif sidebar_filter == 'safe' %}
-            정상 메일만 보는 필터가 적용되어 있습니다.
-          {% elif sidebar_filter == 'review' %}
-            검토 메일만 보는 필터가 적용되어 있습니다.
-          {% elif sidebar_filter == 'quarantine' %}
-            격리 메일만 보는 필터가 적용되어 있습니다.
-          {% else %}
-            기본 목록에서 전체 메일을 보고 있습니다.
-          {% endif %}
-        </p>
+        <p class="mt-2 text-sm leading-6 text-slate-500">메일 분류와 숨김 규칙, 설정 페이지를 같은 워크스페이스 안에서 이동할 수 있습니다.</p>
         <div class="mt-4 flex flex-wrap gap-2">
-          <span class="info-chip">{{ hidden_keywords|length }}개 규칙 저장됨</span>
-          <span class="info-chip">휴지통 이동 지원</span>
+          <span class="info-chip">{{ hidden_keywords|length }}개 규칙 저장</span>
+          <span class="info-chip">설정 페이지 연결됨</span>
         </div>
       </div>
+
+      <a href="{{ url_for('core.settings_page') }}" class="sidebar-link mt-4 {% if request.endpoint == 'core.settings_page' %}sidebar-link-active{% endif %}">
+        <span class="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
+          <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M12 3.75a2.25 2.25 0 0 1 2.2 1.76l.12.54a1 1 0 0 0 .96.78h.54a2.25 2.25 0 0 1 1.59 3.84l-.39.39a1 1 0 0 0-.23 1.08l.21.51a2.25 2.25 0 0 1-2.08 3.1h-.56a1 1 0 0 0-.95.69l-.18.55a2.25 2.25 0 0 1-4.26 0l-.18-.55a1 1 0 0 0-.95-.69h-.56a2.25 2.25 0 0 1-2.08-3.1l.21-.51a1 1 0 0 0-.23-1.08l-.39-.39a2.25 2.25 0 0 1 1.59-3.84h.54a1 1 0 0 0 .96-.78l.12-.54A2.25 2.25 0 0 1 12 3.75Z" />
+            <path d="M12 9.75a2.25 2.25 0 1 0 0 4.5 2.25 2.25 0 0 0 0-4.5Z" />
+          </svg>
+        </span>
+        <span>설정</span>
+      </a>
     </aside>
 
     <div class="flex min-h-screen flex-1 flex-col">
@@ -154,27 +123,21 @@
             </div>
 
             <div class="flex items-center gap-3">
-              <a href="{{ url_for('core.privacy') }}" class="hidden rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900 sm:inline-flex">
-                개인정보
-              </a>
+              <a href="{{ url_for('core.privacy') }}" class="hidden rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900 sm:inline-flex">개인정보</a>
 
               {% if current_user %}
                 <div class="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-3 py-2 shadow-sm">
                   {% if current_user.picture %}
                     <img src="{{ current_user.picture }}" alt="{{ current_user.name }}" class="h-10 w-10 rounded-full object-cover" referrerpolicy="no-referrer" />
                   {% else %}
-                    <span class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
-                      {{ current_user.name[:1] }}
-                    </span>
+                    <span class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">{{ current_user.name[:1] }}</span>
                   {% endif %}
                   <div class="hidden min-w-0 sm:block">
                     <p class="truncate text-sm font-semibold text-slate-900">{{ current_user.name }}</p>
                     <p class="truncate text-xs text-slate-500">{{ current_user.email }}</p>
                   </div>
                   <form method="post" action="{{ url_for('auth.logout') }}">
-                    <button type="submit" class="rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700">
-                      로그아웃
-                    </button>
+                    <button type="submit" class="rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700">로그아웃</button>
                   </form>
                 </div>
               {% endif %}
@@ -182,11 +145,8 @@
           </div>
 
           <div class="flex gap-3 overflow-x-auto pb-1 lg:hidden">
-            <a href="{{ url_for('mailbox.mailbox_home') }}" class="shrink-0 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">메일 목록</a>
-            <a href="{{ url_for('mailbox.mailbox_home', status='safe') }}" class="shrink-0 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-500">정상</a>
-            <a href="{{ url_for('mailbox.mailbox_home', status='review') }}" class="shrink-0 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-500">검토</a>
-            <a href="{{ url_for('mailbox.mailbox_home', status='quarantine') }}" class="shrink-0 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-500">격리</a>
-            <span class="shrink-0 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-500">상세 읽기</span>
+            <a href="{{ url_for('mailbox.mailbox_home') }}" class="shrink-0 rounded-full {% if request.endpoint == 'mailbox.mailbox_home' %}bg-slate-900 text-white{% else %}bg-white text-slate-700{% endif %} px-4 py-2 text-sm font-semibold">메일 목록</a>
+            <a href="{{ url_for('core.settings_page') }}" class="shrink-0 rounded-full {% if request.endpoint == 'core.settings_page' %}bg-slate-900 text-white{% else %}bg-white text-slate-700{% endif %} px-4 py-2 text-sm font-semibold">설정</a>
             <a href="#hide-rules-panel" class="shrink-0 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-500">숨김 규칙</a>
           </div>
         </div>

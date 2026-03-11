@@ -1,4 +1,5 @@
-import secrets
+﻿import secrets
+from urllib.parse import urlencode, urlparse
 
 from flask import Blueprint, current_app, flash, redirect, request, session, url_for
 
@@ -7,8 +8,31 @@ from ..extensions import get_oauth_service, get_user_repository
 bp = Blueprint("auth", __name__, url_prefix="/auth")
 
 
+def _configured_google_start_url():
+    configured_redirect_uri = current_app.config.get("GOOGLE_REDIRECT_URI", "")
+    if not configured_redirect_uri:
+        return None
+
+    redirect_target = urlparse(configured_redirect_uri)
+    if not redirect_target.scheme or not redirect_target.netloc:
+        return None
+
+    if request.scheme == redirect_target.scheme and request.host == redirect_target.netloc:
+        return None
+
+    start_url = f"{redirect_target.scheme}://{redirect_target.netloc}{url_for('auth.google_start')}"
+    next_value = request.args.get("next")
+    if next_value:
+        start_url = f"{start_url}?{urlencode({'next': next_value})}"
+    return start_url
+
+
 @bp.get("/google/start")
 def google_start():
+    configured_start_url = _configured_google_start_url()
+    if configured_start_url:
+        return redirect(configured_start_url)
+
     oauth_service = get_oauth_service()
 
     if not oauth_service.is_configured():
@@ -16,10 +40,7 @@ def google_start():
         return redirect(url_for("core.home"))
 
     if not get_user_repository().can_store_tokens:
-        flash(
-            "TOKEN_ENCRYPTION_KEY 설정이 없거나 형식이 올바르지 않아 로그인을 시작할 수 없습니다.",
-            "error",
-        )
+        flash("TOKEN_ENCRYPTION_KEY 설정이 올바르지 않아 로그인을 시작할 수 없습니다.", "error")
         return redirect(url_for("core.home"))
 
     state = secrets.token_urlsafe(24)
@@ -32,7 +53,7 @@ def google_start():
 @bp.get("/google/callback")
 def google_callback():
     if request.args.get("error"):
-        flash("Google 로그인이 취소되었거나 거부되었습니다.", "error")
+        flash("Google 로그인이 취소되었거나 거절되었습니다.", "error")
         return redirect(url_for("core.home"))
 
     expected_state = session.get("oauth_state")
@@ -61,7 +82,7 @@ def google_callback():
             token_payload["refresh_token"] = existing_token.get("refresh_token")
 
         user = user_repository.upsert_google_user(profile, token_payload)
-    except Exception:  # pragma: no cover - exercised in integration
+    except Exception:
         current_app.logger.exception("Google OAuth callback failed")
         flash("Google 계정을 연결하지 못했습니다. 설정 또는 권한을 확인해주세요.", "error")
         return redirect(url_for("core.home"))
