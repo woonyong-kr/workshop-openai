@@ -23,13 +23,21 @@ jobs:
             set -e
             cd ~/app
 
+            # 최신 코드 pull
             git pull origin main
 
             # 민감 환경변수 복원 (GitHub Secret → EC2 파일)
             echo "${{ secrets.ENV_FILE }}" > .env.secret
 
             mkdir -p logs
+
+            # Python 의존성 + npm 설치
             make deps
+
+            # Tailwind CSS 빌드 (템플릿 변경 반영)
+            make build-css
+
+            # 서비스 재시작
             sudo systemctl restart flask-app
 
             echo "배포 완료"

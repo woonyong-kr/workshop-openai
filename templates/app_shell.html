@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block body_class %}min-h-screen bg-slate-100 text-slate-900 antialiased{% endblock %}
+
+{% block content %}
+  <div class="min-h-screen lg:flex">
+    <aside class="hidden w-80 shrink-0 border-r border-white/80 bg-white/90 px-6 py-8 backdrop-blur lg:flex lg:flex-col">
+      <div>
+        <a href="{{ url_for('mailbox.mailbox_home') }}" class="flex items-center gap-3">
+          <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-base font-semibold text-white">
+            {{ app_name[:1] }}
+          </span>
+          <div>
+            <p class="text-sm font-semibold text-slate-900">{{ app_name }}</p>
+            <p class="text-xs text-slate-500">Focused Gmail workspace</p>
+          </div>
+        </a>
+      </div>
+
+      <nav class="mt-10 space-y-2">
+        <a href="{{ url_for('mailbox.mailbox_home') }}" class="sidebar-link {% if request.endpoint == 'mailbox.mailbox_home' %}sidebar-link-active{% endif %}">
+          <span class="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
+            <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M4 7h16v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Z" />
+              <path d="m4 8 8 6 8-6" />
+            </svg>
+          </span>
+          <span>메일 목록</span>
+        </a>
+
+        <span class="sidebar-link cursor-default opacity-75">
+          <span class="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
+            <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M6 6h12v12H6z" />
+              <path d="M10 6v12" />
+            </svg>
+          </span>
+          <span>상세 읽기</span>
+        </span>
+
+        <span class="sidebar-link cursor-default opacity-50">
+          <span class="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
+            <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M12 3v18" />
+              <path d="M3 12h18" />
+            </svg>
+          </span>
+          <span>숨김 규칙</span>
+          <span class="ml-auto rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-500">Soon</span>
+        </span>
+
+        <span class="sidebar-link cursor-default opacity-50">
+          <span class="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
+            <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M4 6h16" />
+              <path d="M4 12h10" />
+              <path d="M4 18h7" />
+            </svg>
+          </span>
+          <span>자동화</span>
+          <span class="ml-auto rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-500">Soon</span>
+        </span>
+      </nav>
+
+      <div class="mt-auto rounded-[28px] border border-slate-200/80 bg-slate-50 p-5">
+        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Phase 1</p>
+        <h2 class="mt-3 text-lg font-semibold text-slate-900">목록과 상세에 집중한 첫 릴리스</h2>
+        <p class="mt-2 text-sm leading-6 text-slate-500">
+          이후 단계에서 삭제, 숨김 규칙, 수신거부 자동화를 같은 서비스 레이어 위에 확장할 수 있도록 구조를 분리했습니다.
+        </p>
+      </div>
+    </aside>
+
+    <div class="flex min-h-screen flex-1 flex-col">
+      <header class="sticky top-0 z-30 border-b border-slate-200/70 bg-slate-100/90 backdrop-blur">
+        <div class="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
+          <div class="flex items-center justify-between gap-4">
+            <div class="min-w-0">
+              <p class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">{% block app_eyebrow %}Mailbox Workspace{% endblock %}</p>
+              <h1 class="mt-2 truncate text-2xl font-semibold tracking-tight text-slate-950">{% block app_title %}{% endblock %}</h1>
+              {% block app_subtitle %}{% endblock %}
+            </div>
+
+            <div class="flex items-center gap-3">
+              <a href="{{ url_for('core.privacy') }}" class="hidden rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900 sm:inline-flex">
+                개인정보
+              </a>
+
+              {% if current_user %}
+                <div class="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-3 py-2 shadow-sm">
+                  {% if current_user.picture %}
+                    <img src="{{ current_user.picture }}" alt="{{ current_user.name }}" class="h-10 w-10 rounded-full object-cover" referrerpolicy="no-referrer" />
+                  {% else %}
+                    <span class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
+                      {{ current_user.name[:1] }}
+                    </span>
+                  {% endif %}
+                  <div class="hidden min-w-0 sm:block">
+                    <p class="truncate text-sm font-semibold text-slate-900">{{ current_user.name }}</p>
+                    <p class="truncate text-xs text-slate-500">{{ current_user.email }}</p>
+                  </div>
+                  <form method="post" action="{{ url_for('auth.logout') }}">
+                    <button type="submit" class="rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700">
+                      로그아웃
+                    </button>
+                  </form>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="flex gap-3 overflow-x-auto pb-1 lg:hidden">
+            <a href="{{ url_for('mailbox.mailbox_home') }}" class="shrink-0 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">메일 목록</a>
+            <span class="shrink-0 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-500">상세 읽기</span>
+            <span class="shrink-0 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-400">숨김 규칙 · Soon</span>
+            <span class="shrink-0 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-400">자동화 · Soon</span>
+          </div>
+        </div>
+      </header>
+
+      <main class="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 lg:px-8">
+        {% block app_content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+{% endblock %}

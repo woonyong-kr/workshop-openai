@@ -1,0 +1,37 @@
+{% for message in messages %}
+  <a href="{{ url_for('mailbox.mail_detail', message_id=message.id) }}" class="mail-row group">
+    <div class="min-w-0">
+      <div class="flex items-center gap-3">
+        <span class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
+          {{ message.sender_initial }}
+        </span>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <p class="truncate text-sm font-semibold text-slate-900">{{ message.sender_name }}</p>
+            {% if message.unread %}
+              <span class="rounded-full bg-sky-50 px-2 py-1 text-[11px] font-semibold text-sky-700">새 메일</span>
+            {% endif %}
+            {% if message.has_attachments %}
+              <span class="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-500">첨부</span>
+            {% endif %}
+          </div>
+          <p class="truncate text-xs text-slate-500">{{ message.sender_email }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="min-w-0">
+      <p class="truncate text-sm font-semibold text-slate-900 transition group-hover:text-slate-950">{{ message.subject }}</p>
+      <p class="mt-1 truncate text-sm text-slate-500">{{ message.snippet }}</p>
+    </div>
+
+    <div class="justify-self-end text-right">
+      <p class="text-sm font-semibold text-slate-500">{{ message.display_date }}</p>
+      <div class="mt-2 flex flex-wrap justify-end gap-2">
+        {% for label in message.labels %}
+          <span class="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-500">{{ label }}</span>
+        {% endfor %}
+      </div>
+    </div>
+  </a>
+{% endfor %}

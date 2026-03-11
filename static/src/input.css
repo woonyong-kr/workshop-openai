@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: "Pretendard Variable", "SUIT Variable", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  }
+
+  body {
+    @apply bg-slate-100 text-slate-900;
+  }
+}
+
+@layer components {
+  .mail-card {
+    @apply rounded-[32px] border border-white/80 bg-white shadow-[0_24px_70px_-44px_rgba(15,23,42,0.45)];
+  }
+
+  .sidebar-link {
+    @apply flex items-center gap-3 rounded-[22px] px-4 py-3 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900;
+  }
+
+  .sidebar-link-active {
+    @apply bg-slate-900 text-white shadow-[0_20px_40px_-28px_rgba(15,23,42,0.75)] hover:bg-slate-900 hover:text-white;
+  }
+
+  .mail-row {
+    @apply grid gap-4 rounded-[26px] border border-transparent px-5 py-4 transition hover:border-slate-200 hover:bg-slate-50 md:grid-cols-[minmax(0,1.1fr)_minmax(0,2fr)_auto];
+  }
+
+  .email-body {
+    @apply text-[15px] leading-8 text-slate-700;
+  }
+
+  .email-body a {
+    @apply text-sky-600 underline decoration-sky-200 underline-offset-4;
+  }
+
+  .email-body p {
+    @apply mb-4;
+  }
+
+  .email-body ul,
+  .email-body ol {
+    @apply mb-4 pl-5;
+  }
+
+  .email-body li {
+    @apply mb-2;
+  }
+
+  .email-body table {
+    @apply mb-4 w-full border-collapse overflow-hidden rounded-2xl border border-slate-200;
+  }
+
+  .email-body th,
+  .email-body td {
+    @apply border border-slate-200 px-3 py-2 text-left align-top;
+  }
+
+  .email-body blockquote {
+    @apply my-4 border-l-4 border-slate-200 pl-4 italic text-slate-500;
+  }
+
+  .email-body pre {
+    @apply my-4 overflow-x-auto rounded-2xl bg-slate-900 p-4 text-sm text-slate-100;
+  }
+}

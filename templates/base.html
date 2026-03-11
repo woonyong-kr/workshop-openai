@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}{{ app_name }}{% endblock %}</title>
+  <meta name="description" content="{{ app_tagline }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}" />
+</head>
+<body class="{% block body_class %}min-h-screen bg-slate-100 text-slate-900{% endblock %}">
+  <div class="relative min-h-screen">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="pointer-events-none fixed inset-x-0 top-4 z-50 mx-auto flex w-full max-w-3xl flex-col gap-3 px-4">
+          {% for category, message in messages %}
+            <div class="pointer-events-auto rounded-2xl border px-4 py-3 text-sm font-medium shadow-lg backdrop-blur
+              {% if category == 'error' %}
+                border-rose-200 bg-rose-50 text-rose-700
+              {% else %}
+                border-emerald-200 bg-emerald-50 text-emerald-700
+              {% endif %}
+            ">
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </div>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>
