@@ -43,11 +43,12 @@ class GmailService:
     RISKY_EXTENSIONS = [".html", ".htm", ".exe", ".js", ".scr", ".bat", ".cmd", ".docm", ".xlsm"]
     ALLOWED_TAGS = [
         "a", "b", "blockquote", "br", "code", "div", "em", "h1", "h2", "h3", "h4", "h5", "h6",
-        "hr", "li", "ol", "p", "pre", "span", "strong", "table", "tbody", "td", "th", "thead", "tr", "ul",
+        "hr", "img", "li", "ol", "p", "pre", "span", "strong", "table", "tbody", "td", "th", "thead", "tr", "ul",
     ]
     ALLOWED_ATTRIBUTES = {
         "a": ["href", "title", "target", "rel"],
         "blockquote": ["cite"],
+        "img": ["src", "alt", "title"],
     }
 
     def __init__(self, oauth_service, user_repository, page_size=20):
@@ -220,7 +221,7 @@ class GmailService:
         attachments = []
         self._walk_parts(payload, body_parts, attachments)
 
-        body_html = body_parts["html"] or self._text_to_html(body_parts["text"])
+        body_html = self._resolve_body_html(body_parts)
         body_text = body_parts["text"] or self._html_to_text(body_parts["html"])
         image_attachments = [item for item in attachments if item["is_image"]]
         file_attachments = [item for item in attachments if not item["is_image"]]
@@ -289,6 +290,12 @@ class GmailService:
             strip=True,
         )
         return bleach.linkify(cleaned)
+
+    def _resolve_body_html(self, body_parts):
+        html_body = body_parts["html"]
+        if html_body and self._html_to_text(html_body):
+            return html_body
+        return self._text_to_html(body_parts["text"])
 
     def _text_to_html(self, text):
         if not text:

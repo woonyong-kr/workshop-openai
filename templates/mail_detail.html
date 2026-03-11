@@ -1,10 +1,10 @@
-{% extends "app_shell.html" %}
+﻿{% extends "app_shell.html" %}
 
 {% block title %}메일 상세 | {{ app_name }}{% endblock %}
 {% block app_title %}메일 상세{% endblock %}
 {% block app_subtitle %}
   <p class="mt-2 text-sm leading-6 text-slate-500">
-    메일 본문과 첨부파일, 분류 근거를 한 화면에서 확인할 수 있도록 정리했습니다.
+    메일 본문과 첨부파일, 분류 근거를 한 화면에서 확인할 수 있습니다.
   </p>
 {% endblock %}
 
@@ -101,23 +101,13 @@
               <div class="mt-6 grid gap-4 lg:grid-cols-2">
                 {% for attachment in message.image_attachments %}
                   <article class="overflow-hidden rounded-[28px] border border-slate-200/80 bg-slate-50">
-                    <img
-                      src="{{ url_for('mailbox.mail_attachment', message_id=message.id, part_id=attachment.part_id) }}"
-                      alt="{{ attachment.filename }}"
-                      class="h-60 w-full object-cover"
-                      loading="lazy"
-                    />
+                    <img src="{{ url_for('mailbox.mail_attachment', message_id=message.id, part_id=attachment.part_id) }}" alt="{{ attachment.filename }}" class="h-60 w-full object-cover" loading="lazy" />
                     <div class="flex items-center justify-between gap-4 px-5 py-4">
                       <div class="min-w-0">
                         <p class="truncate text-sm font-semibold text-slate-900">{{ attachment.filename }}</p>
                         <p class="mt-1 text-sm text-slate-500">{{ attachment.size }}</p>
                       </div>
-                      <a
-                        href="{{ url_for('mailbox.mail_attachment', message_id=message.id, part_id=attachment.part_id) }}?download=1"
-                        class="shrink-0 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
-                      >
-                        다운로드
-                      </a>
+                      <a href="{{ url_for('mailbox.mail_attachment', message_id=message.id, part_id=attachment.part_id) }}?download=1" class="shrink-0 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700">다운로드</a>
                     </div>
                   </article>
                 {% endfor %}
@@ -130,14 +120,9 @@
                   <div class="flex flex-wrap items-center justify-between gap-4 rounded-[24px] border border-slate-200/80 bg-white px-5 py-4">
                     <div class="min-w-0">
                       <p class="truncate text-sm font-semibold text-slate-900">{{ attachment.filename }}</p>
-                      <p class="mt-1 text-sm text-slate-500">{{ attachment.size }} · {{ attachment.mime_type }}</p>
+                      <p class="mt-1 text-sm text-slate-500">{{ attachment.size }} / {{ attachment.mime_type }}</p>
                     </div>
-                    <a
-                      href="{{ url_for('mailbox.mail_attachment', message_id=message.id, part_id=attachment.part_id) }}?download=1"
-                      class="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-950"
-                    >
-                      다운로드
-                    </a>
+                    <a href="{{ url_for('mailbox.mail_attachment', message_id=message.id, part_id=attachment.part_id) }}?download=1" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-950">다운로드</a>
                   </div>
                 {% endfor %}
               </div>
@@ -175,10 +160,24 @@
             </div>
           </div>
 
-          <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Message Body</p>
-          <div class="email-body mt-6 rounded-[30px] border border-slate-200/80 bg-slate-50 px-5 py-6 sm:px-6">
-            {{ message.body_html|safe }}
+          <div class="mt-8 flex items-center justify-between gap-3">
+            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Message Body</p>
+            {% if settings.show_html_preview %}
+              <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">HTML 보기</span>
+            {% else %}
+              <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">텍스트 보기</span>
+            {% endif %}
           </div>
+
+          {% if settings.show_html_preview %}
+            <div class="email-body mt-6 rounded-[30px] border border-slate-200/80 bg-slate-50 px-5 py-6 sm:px-6">
+              {{ message.body_html|safe }}
+            </div>
+          {% else %}
+            <div class="email-body mt-6 rounded-[30px] border border-slate-200/80 bg-slate-50 px-5 py-6 sm:px-6 whitespace-pre-wrap">
+              {{ message.body_text or '표시할 본문이 없습니다.' }}
+            </div>
+          {% endif %}
         </section>
       </article>
     {% endif %}
