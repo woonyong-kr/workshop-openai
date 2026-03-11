@@ -1,6 +1,11 @@
+import os
 from datetime import datetime, timezone
 
 import requests
+
+# Google이 콜백 시 요청보다 많은 스코프를 반환해도 예외 발생 방지
+# (include_granted_scopes로 인해 이전에 허용된 스코프가 추가될 수 있음)
+os.environ.setdefault("OAUTHLIB_RELAX_TOKEN_SCOPE", "1")
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
