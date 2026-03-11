@@ -48,7 +48,18 @@ class GmailService:
     ALLOWED_ATTRIBUTES = {
         "a": ["href", "title", "target", "rel"],
         "blockquote": ["cite"],
-        "img": ["src", "alt", "title"],
+        "img": ["src", "alt", "title", "width", "height", "style"],
+        "table": ["width", "height", "align", "valign", "bgcolor", "cellpadding", "cellspacing", "border", "style"],
+        "td": ["width", "height", "align", "valign", "bgcolor", "colspan", "rowspan", "style"],
+        "th": ["width", "height", "align", "valign", "bgcolor", "colspan", "rowspan", "style"],
+        "tr": ["align", "valign", "bgcolor", "style"],
+        "div": ["style", "align"],
+        "p": ["style", "align"],
+        "span": ["style"],
+        "h1": ["style"], "h2": ["style"], "h3": ["style"],
+        "h4": ["style"], "h5": ["style"], "h6": ["style"],
+        "ol": ["style"], "ul": ["style"], "li": ["style"],
+        "hr": ["style"], "br": [],
     }
 
     def __init__(self, oauth_service, user_repository, page_size=20):
@@ -219,7 +230,18 @@ class GmailService:
 
         body_parts = {"html": None, "text": None}
         attachments = []
-        self._walk_parts(payload, body_parts, attachments)
+        cid_map = {}
+        self._walk_parts(payload, body_parts, attachments, cid_map)
+
+        # cid: 인라인 이미지를 첨부파일 API 경로로 치환 (sanitize 전에 처리)
+        if body_parts["html"]:
+            raw = body_parts["html"]
+            for content_id, part_id in cid_map.items():
+                raw = raw.replace(
+                    f'cid:{content_id}',
+                    f'/mail/{message["id"]}/attachments/{part_id}',
+                )
+            body_parts["html"] = self._sanitize_html(raw)
 
         body_html = self._resolve_body_html(body_parts)
         body_text = body_parts["text"] or self._html_to_text(body_parts["html"])
@@ -255,16 +277,23 @@ class GmailService:
             **classification,
         }
 
-    def _walk_parts(self, part, body_parts, attachments):
+    def _walk_parts(self, part, body_parts, attachments, cid_map):
         mime_type = part.get("mimeType", "")
         filename = part.get("filename")
         body = part.get("body", {})
         data = body.get("data")
+        part_id = part.get("partId", "root")
+
+        # Content-ID 수집 (인라인 이미지 cid: 치환에 사용)
+        part_headers = {h["name"].lower(): h["value"] for h in part.get("headers", [])}
+        content_id = part_headers.get("content-id", "").strip("<>")
+        if content_id:
+            cid_map[content_id] = part_id
 
         if filename:
             attachments.append(
                 {
-                    "part_id": part.get("partId", "root"),
+                    "part_id": part_id,
                     "filename": filename,
                     "mime_type": mime_type or "application/octet-stream",
                     "size": self._format_size(body.get("size", 0)),
@@ -273,13 +302,13 @@ class GmailService:
             )
 
         if mime_type == "text/html" and data and not body_parts["html"]:
-            raw_html = self._decode_base64(data).decode("utf-8", errors="replace")
-            body_parts["html"] = self._sanitize_html(raw_html)
+            # cid: 치환을 위해 raw HTML 저장 (sanitize는 _build_message_detail에서)
+            body_parts["html"] = self._decode_base64(data).decode("utf-8", errors="replace")
         elif mime_type == "text/plain" and data and not body_parts["text"]:
             body_parts["text"] = self._decode_base64(data).decode("utf-8", errors="replace")
 
         for child in part.get("parts", []):
-            self._walk_parts(child, body_parts, attachments)
+            self._walk_parts(child, body_parts, attachments, cid_map)
 
     def _sanitize_html(self, raw_html):
         raw_html = self._extract_renderable_html(raw_html)
