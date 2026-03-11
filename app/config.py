@@ -41,8 +41,8 @@ class Config:
     )
     GOOGLE_SCOPES = [
         "openid",
-        "email",
-        "profile",
+        "https://www.googleapis.com/auth/userinfo.email",
+        "https://www.googleapis.com/auth/userinfo.profile",
         "https://www.googleapis.com/auth/gmail.modify",
     ]
     TOKEN_ENCRYPTION_KEY = os.getenv("TOKEN_ENCRYPTION_KEY", "")
