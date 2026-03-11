@@ -1,7 +1,7 @@
 {% for message in messages %}
   <article class="mail-row group">
 
-    {{-- 컬럼 1: 발신자 --}}
+    {# 컬럼 1: 발신자 #}
     <div class="flex min-w-0 items-center gap-3">
       <input type="checkbox" name="message_ids" value="{{ message.id }}" class="h-4 w-4 shrink-0" />
       <span class="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100">
@@ -35,7 +35,7 @@
       </div>
     </div>
 
-    {{-- 컬럼 2: 제목 + 스니펫 + 분류 --}}
+    {# 컬럼 2: 제목 + 스니펫 + 분류 #}
     <div class="min-w-0">
       <a href="{{ url_for('mailbox.mail_detail', message_id=message.id, status=active_filter if active_filter != 'all' else None, hidden_keyword=active_hidden_keyword or None) }}" class="block">
         <p class="truncate text-sm font-semibold text-slate-900 transition group-hover:text-slate-950">{{ message.subject }}</p>
@@ -56,7 +56,7 @@
       </div>
     </div>
 
-    {{-- 컬럼 3: 날짜 + 위험도 + 라벨 --}}
+    {# 컬럼 3: 날짜 + 위험도 + 라벨 #}
     <div class="flex flex-col items-end gap-1 justify-self-end text-right">
       <p class="text-sm font-medium text-slate-500">{{ message.display_date }}</p>
       {% if message.risk_style == "danger" %}
