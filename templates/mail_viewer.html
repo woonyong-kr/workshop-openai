@@ -1,0 +1,63 @@
+﻿<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>메일 본문 뷰어</title>
+  <style>
+    :root {
+      color-scheme: light;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 24px;
+      background: #ffffff;
+      color: #334155;
+      font-family: Pretendard Variable, SUIT Variable, Apple SD Gothic Neo, Noto Sans KR, sans-serif;
+      line-height: 1.75;
+    }
+
+    .viewer-body {
+      max-width: 100%;
+      overflow-wrap: anywhere;
+    }
+
+    .viewer-body img {
+      max-width: 100%;
+      height: auto;
+    }
+
+    .viewer-body table {
+      max-width: 100%;
+    }
+
+    .viewer-empty {
+      border: 1px solid #e2e8f0;
+      border-radius: 24px;
+      background: #f8fafc;
+      padding: 32px 24px;
+      color: #64748b;
+    }
+
+    .viewer-plain {
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  {% if error_message %}
+    <div class="viewer-empty">{{ error_message }}</div>
+  {% elif settings.show_html_preview and message and message.body_html %}
+    <div class="viewer-body">{{ message.body_html|safe }}</div>
+  {% elif message %}
+    <div class="viewer-body viewer-plain">{{ message.body_text or '표시할 본문이 없습니다.' }}</div>
+  {% else %}
+    <div class="viewer-empty">표시할 본문이 없습니다.</div>
+  {% endif %}
+</body>
+</html>

@@ -228,6 +228,32 @@ def mail_detail(message_id):
     )
 
 
+
+@bp.get("/mail/<message_id>/viewer")
+@login_required
+def mail_viewer(message_id):
+    settings = _user_settings()
+
+    try:
+        message = get_visibility_service().filter_detail(
+            get_gmail_service().get_message_detail(g.current_user, message_id)
+        )
+    except Exception:
+        current_app.logger.exception("Failed to load message viewer")
+        return render_template(
+            "mail_viewer.html",
+            message=None,
+            error_message="메일 본문을 표시하지 못했습니다. 잠시 후 다시 시도해주세요.",
+            settings=settings,
+        )
+
+    return render_template(
+        "mail_viewer.html",
+        message=message,
+        error_message=None,
+        settings=settings,
+    )
+
 @bp.get("/mail/<message_id>/attachments/<part_id>")
 @login_required
 def mail_attachment(message_id, part_id):

@@ -162,22 +162,18 @@
 
           <div class="mt-8 flex items-center justify-between gap-3">
             <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Message Body</p>
-            {% if settings.show_html_preview %}
-              <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">HTML 보기</span>
-            {% else %}
-              <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">텍스트 보기</span>
-            {% endif %}
+            <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">분리 뷰어</span>
           </div>
 
-          {% if settings.show_html_preview %}
-            <div class="email-body mt-6 rounded-[30px] border border-slate-200/80 bg-slate-50 px-5 py-6 sm:px-6">
-              {{ message.body_html|safe }}
-            </div>
-          {% else %}
-            <div class="email-body mt-6 rounded-[30px] border border-slate-200/80 bg-slate-50 px-5 py-6 sm:px-6 whitespace-pre-wrap">
-              {{ message.body_text or '표시할 본문이 없습니다.' }}
-            </div>
-          {% endif %}
+          <div class="mt-6 overflow-hidden rounded-[30px] border border-slate-200/80 bg-slate-50">
+            <iframe
+              src="{{ url_for('mailbox.mail_viewer', message_id=message.id) }}"
+              title="메일 본문 뷰어"
+              class="block min-h-[32rem] w-full bg-white"
+              loading="lazy"
+              onload="const doc=this.contentWindow?.document; if(doc?.body){ this.style.height = Math.max(doc.body.scrollHeight, 512) + 'px'; }"
+            ></iframe>
+          </div>
         </section>
       </article>
     {% endif %}
