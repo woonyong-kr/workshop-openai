@@ -29,8 +29,7 @@ jobs:
             echo "${{ secrets.ENV_FILE }}" > .env.secret
 
             mkdir -p logs
-            pkill -f "python app.py" || true
-            nohup make run > logs/flask.log 2>&1 &
-            disown
+            make deps
+            sudo systemctl restart flask-app
 
             echo "배포 완료"
